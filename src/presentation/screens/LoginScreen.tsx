@@ -15,9 +15,13 @@ import { useAuth } from '../hooks/useAuth';
 
 interface LoginScreenProps {
   onNavigateToSignup: () => void;
+  onLoginSuccess?: (email?: string) => void;
 }
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToSignup }) => {
+const LoginScreen: React.FC<LoginScreenProps> = ({
+  onNavigateToSignup,
+  onLoginSuccess,
+}) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -55,8 +59,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onNavigateToSignup }) => {
 
     const result = await login({ email, password });
     if (result.success) {
-      // Navigate to home/dashboard here
-      console.log('Login successful');
+      onLoginSuccess?.(email);
     }
   };
 

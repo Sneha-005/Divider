@@ -15,9 +15,13 @@ import { useAuth } from '../hooks/useAuth';
 
 interface SignupScreenProps {
   onNavigateToLogin: () => void;
+  onSignupSuccess?: (username?: string) => void;
 }
 
-const SignupScreen: React.FC<SignupScreenProps> = ({ onNavigateToLogin }) => {
+const SignupScreen: React.FC<SignupScreenProps> = ({
+  onNavigateToLogin,
+  onSignupSuccess,
+}) => {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -87,8 +91,7 @@ const SignupScreen: React.FC<SignupScreenProps> = ({ onNavigateToLogin }) => {
 
     const result = await signup({ email, username, password });
     if (result.success) {
-      // Navigate to home/dashboard here
-      console.log('Signup successful');
+      onSignupSuccess?.(username);
     }
   };
 
