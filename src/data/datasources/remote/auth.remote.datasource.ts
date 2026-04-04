@@ -9,7 +9,7 @@ import {
   RegisterRequest,
   RegisterResponse,
   ApiErrorResponse,
-} from "@data/models/auth.model";
+} from "../models/auth.model";
 
 const API_BASE_URL = "https://divider-backend.onrender.com";
 const API_TIMEOUT = 30000; // 30 seconds
@@ -35,8 +35,8 @@ export class AuthRemoteDataSource {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        const errorData: ApiErrorResponse = await response.json();
-        throw new Error(errorData.error || `HTTP ${response.status}`);
+        const errorMessage = await this.extractErrorMessage(response);
+        throw new Error(errorMessage);
       }
 
       const data: LoginResponse = await response.json();
@@ -69,8 +69,8 @@ export class AuthRemoteDataSource {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        const errorData: ApiErrorResponse = await response.json();
-        throw new Error(errorData.error || `HTTP ${response.status}`);
+        const errorMessage = await this.extractErrorMessage(response);
+        throw new Error(errorMessage);
       }
 
       const data: RegisterResponse = await response.json();
@@ -80,6 +80,32 @@ export class AuthRemoteDataSource {
         throw new Error("Request timeout. Please check your connection.");
       }
       throw error;
+    }
+  }
+
+  /**
+   * Extract error message from response
+   */
+  private async extractErrorMessage(response: Response): Promise<string> {
+    try {
+      const clonedResponse = response.clone();
+      const contentType = clonedResponse.headers.get("content-type");
+      
+      if (contentType && contentType.includes("application/json")) {
+        const errorData = await clonedResponse.json();
+        if (errorData.error) {
+          return errorData.error;
+        }
+        if (errorData.message) {
+          return errorData.message;
+        }
+      }
+      
+      // Fallback to text if not JSON
+      const text = await clonedResponse.text();
+      return text || `HTTP ${response.status}`;
+    } catch (error) {
+      return `HTTP ${response.status}`;
     }
   }
 }

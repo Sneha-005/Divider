@@ -1,9 +1,12 @@
 import { useState, useCallback } from 'react';
+import { AuthRemoteDataSource } from '../../data/datasources/remote/auth.remote.datasource';
+import { AuthLocalDataSource } from '../../data/datasources/local/auth.local.datasource';
 
 export interface User {
   id: string;
   email: string;
   username?: string;
+  token?: string;
 }
 
 interface LoginParams {
@@ -17,6 +20,9 @@ interface SignupParams {
   password: string;
 }
 
+const authDataSource = new AuthRemoteDataSource();
+const localDataSource = new AuthLocalDataSource();
+
 export const useAuth = () => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
@@ -26,24 +32,37 @@ export const useAuth = () => {
     setLoading(true);
     setError(null);
     try {
-      // Simulate API call with 2 second delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const response = await authDataSource.login({ email, password });
 
-      // Mock authentication - accept any valid email/password
-      if (email && password) {
-        setUser({
-          id: '1',
-          email,
-        });
-        return { success: true };
-      } else {
-        setError('Invalid credentials');
-        return { success: false, error: 'Invalid credentials' };
+      // Store user in state (token will be returned in response)
+      const userData: User = {
+        id: response.id,
+        email: response.email,
+        username: response.username,
+        token: response.token,
+      };
+
+      if (response.token) {
+        await localDataSource.saveToken(response.token);
+        await localDataSource.saveUserData(userData);
       }
+
+      setUser(userData);
+      return { success: true };
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Login failed';
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
+      let errorMessage = err instanceof Error ? err.message : 'Login failed';
+      let friendlyError = errorMessage;
+      
+      if (errorMessage.includes('timeout') || errorMessage.includes('Timeout')) {
+        friendlyError = 'Connection timeout. Please check your internet connection and try again.';
+      } else if (errorMessage.includes('network') || errorMessage.includes('Network')) {
+        friendlyError = 'Network error. Please check your internet connection.';
+      } else if (errorMessage.includes('500')) {
+        friendlyError = 'Server error. Please try again later.';
+      }
+      
+      setError(friendlyError);
+      return { success: false, error: friendlyError };
     } finally {
       setLoading(false);
     }
@@ -53,32 +72,50 @@ export const useAuth = () => {
     setLoading(true);
     setError(null);
     try {
-      // Simulate API call with 2 second delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const response = await authDataSource.register({ email, username, password });
 
-      if (email && username && password) {
-        setUser({
-          id: '1',
-          email,
-          username,
-        });
-        return { success: true };
-      } else {
-        setError('Registration failed');
-        return { success: false, error: 'Registration failed' };
+      // Store user in state (token will be returned in response)
+      const userData: User = {
+        id: response.id,
+        email: response.email,
+        username: response.username,
+        token: response.token,
+      };
+
+      if (response.token) {
+        await localDataSource.saveToken(response.token);
+        await localDataSource.saveUserData(userData);
       }
+
+      setUser(userData);
+      return { success: true };
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Signup failed';
-      setError(errorMessage);
-      return { success: false, error: errorMessage };
+      let errorMessage = err instanceof Error ? err.message : 'Signup failed';
+      let friendlyError = errorMessage;
+      
+      if (errorMessage.includes('timeout') || errorMessage.includes('Timeout')) {
+        friendlyError = 'Connection timeout. Please check your internet connection and try again.';
+      } else if (errorMessage.includes('network') || errorMessage.includes('Network')) {
+        friendlyError = 'Network error. Please check your internet connection.';
+      } else if (errorMessage.includes('500')) {
+        friendlyError = 'Server error. Please try again later.';
+      }
+      
+      setError(friendlyError);
+      return { success: false, error: friendlyError };
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const logout = useCallback(() => {
-    setUser(null);
-    setError(null);
+  const logout = useCallback(async () => {
+    try {
+      await localDataSource.clearAuthData();
+      setUser(null);
+      setError(null);
+    } catch (err) {
+      // Logout error handling
+    }
   }, []);
 
   return {

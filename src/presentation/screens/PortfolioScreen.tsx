@@ -7,7 +7,9 @@ import {
   SafeAreaView,
   TouchableOpacity,
   ActivityIndicator,
+  StatusBar,
 } from 'react-native';
+import { colors } from '../../shared/theme/colors';
 import { usePortfolio, useBuySell } from '../hooks/useStock';
 import { Stock } from '../../domain/entities/stock.entity';
 import { PortfolioHeader } from '../components/PortfolioHeader';
@@ -58,9 +60,10 @@ export const PortfolioScreen: React.FC<PortfolioScreenProps> = ({ onNavigateToHo
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle="light-content" backgroundColor={colors.background} />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#1E40AF" />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </SafeAreaView>
     );
@@ -68,7 +71,8 @@ export const PortfolioScreen: React.FC<PortfolioScreenProps> = ({ onNavigateToHo
 
   if (error || !portfolio) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar barStyle="light-content" backgroundColor={colors.background} />
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error || 'Failed to load portfolio'}</Text>
         </View>
@@ -77,19 +81,8 @@ export const PortfolioScreen: React.FC<PortfolioScreenProps> = ({ onNavigateToHo
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header with Back Button */}
-      <View style={styles.headerContainer}>
-        <TouchableOpacity 
-          style={styles.backButton}
-          onPress={onNavigateToHome}
-        >
-          <Text style={styles.backButtonText}>← Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Portfolio Details</Text>
-        <View style={{ width: 60 }} />
-      </View>
-
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <PortfolioHeader
@@ -197,32 +190,7 @@ export const PortfolioScreen: React.FC<PortfolioScreenProps> = ({ onNavigateToHo
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F8FAFC',
-  },
-  headerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: '#FFFFFF',
-    borderBottomWidth: 1,
-    borderBottomColor: '#E2E8F0',
-  },
-  backButton: {
-    width: 60,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-  },
-  backButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E40AF',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#0F172A',
+    backgroundColor: '#0A0E27',
   },
   loadingContainer: {
     flex: 1,
@@ -236,17 +204,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   errorText: {
-    color: '#EF4444',
+    color: '#FCA5A5',
     fontSize: 16,
     textAlign: 'center',
   },
   statisticsSection: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#1A1F3A',
     marginTop: 16,
     marginHorizontal: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#2D3556',
     overflow: 'hidden',
   },
   statisticsRow: {
@@ -257,7 +225,7 @@ const styles = StyleSheet.create({
   divider: {
     width: 1,
     height: 40,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: '#2D3556',
   },
   actionButtons: {
     flexDirection: 'row',
@@ -270,20 +238,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#34D399',
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: 'center',
   },
   withdrawButton: {
     flex: 1,
     backgroundColor: '#EF4444',
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: 'center',
   },
   buttonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   holdingsSection: {
     paddingHorizontal: 16,
@@ -295,7 +263,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: '#0F172A',
+    color: '#FFFFFF',
   },
   holdingsList: {
     gap: 12,
@@ -306,23 +274,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
-    color: '#94A3B8',
+    color: '#B0B8D4',
     fontSize: 14,
   },
   transactionsSection: {
     paddingHorizontal: 16,
   },
   emptyState: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    backgroundColor: '#1A1F3A',
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
+    borderColor: '#2D3556',
     paddingVertical: 40,
     alignItems: 'center',
   },
   emptyStateText: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: '#B0B8D4',
   },
 });
 

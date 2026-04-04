@@ -7,6 +7,7 @@ import {
   SafeAreaView,
   TouchableOpacity,
   ActivityIndicator,
+  StatusBar,
 } from 'react-native';
 import { colors } from '../../shared/theme/colors';
 import { usePortfolio, useStocks, useBuySell } from '../hooks/useStock';
@@ -59,7 +60,8 @@ export const HomeScreen: React.FC<{ onNavigateToPortfolio?: () => void }> = ({ o
   };
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.screenBackground }]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -171,7 +173,7 @@ export const HomeScreen: React.FC<{ onNavigateToPortfolio?: () => void }> = ({ o
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.screenBackground,
+    backgroundColor: '#0A0E27',
   },
   scrollView: {
     flex: 1,
@@ -184,12 +186,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: colors.primary,
+    color: '#00D084',
     marginBottom: 4,
   },
   headerSubtitle: {
     fontSize: 13,
-    color: colors.textMuted,
+    color: '#B0B8D4',
   },
   loadingContainer: {
     paddingVertical: 40,
@@ -200,12 +202,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     paddingVertical: 20,
     paddingHorizontal: 16,
-    backgroundColor: colors.errorLight,
-    borderRadius: 8,
+    backgroundColor: '#7F1D1D',
+    borderRadius: 12,
     marginBottom: 20,
   },
   errorText: {
-    color: colors.error,
+    color: '#FCA5A5',
     fontSize: 14,
     fontWeight: '500',
   },
@@ -218,40 +220,42 @@ const styles = StyleSheet.create({
   actionButton: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: 8,
+    borderRadius: 12,
     alignItems: 'center',
   },
   buyButton: {
-    backgroundColor: colors.success,
+    backgroundColor: '#34D399',
   },
   sellButton: {
-    backgroundColor: colors.error,
+    backgroundColor: '#EF4444',
   },
   actionButtonText: {
-    color: colors.cardBackground,
+    color: '#FFFFFF',
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   pricesSection: {
     marginHorizontal: 16,
     marginBottom: 24,
-    backgroundColor: colors.cardBackground,
-    borderRadius: 12,
+    backgroundColor: '#1A1F3A',
+    borderRadius: 16,
     overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#2D3556',
   },
   sectionHeader: {
     paddingVertical: 16,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
+    borderBottomColor: '#2D3556',
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: colors.textDark,
+    color: '#FFFFFF',
   },
   stockListContainer: {
-    backgroundColor: colors.cardBackground,
+    backgroundColor: '#1A1F3A',
   },
   emptyContainer: {
     paddingVertical: 40,
@@ -259,7 +263,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyText: {
-    color: colors.textMuted,
+    color: '#B0B8D4',
     fontSize: 14,
   },
 });
