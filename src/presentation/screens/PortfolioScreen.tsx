@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,14 +8,13 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StatusBar,
+  SectionList,
 } from 'react-native';
 import { colors } from '../../shared/theme/colors';
-import { usePortfolio, useBuySell } from '../hooks/useStock';
-import { Stock } from '../../domain/entities/stock.entity';
+import { useWallet, useTransactions } from '../hooks/useTrading';
 import { PortfolioHeader } from '../components/PortfolioHeader';
 import { StatisticsBox } from '../components/StatisticsBox';
 import { HoldingCard } from '../components/HoldingCard';
-import { BuySellModal } from '../components/BuySellModal';
 import { LoadingOverlay } from '../components/LoadingOverlay';
 
 interface PortfolioScreenProps {
@@ -23,40 +22,15 @@ interface PortfolioScreenProps {
 }
 
 export const PortfolioScreen: React.FC<PortfolioScreenProps> = ({ onNavigateToHome }) => {
-  const { portfolio, loading, error } = usePortfolio();
-  const { buyStock, sellStock } = useBuySell();
-
-  const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
-  const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
+  const { wallet, loading, error, refetch } = useWallet();
+  const { transactions, loading: txLoading, error: txError, refetch: refetchTx } = useTransactions();
   const [showModal, setShowModal] = useState(false);
 
-  const handleBuyPress = (stock: Stock) => {
-    setSelectedStock(stock);
-    setTransactionType('buy');
-    setShowModal(true);
-  };
-
-  const handleSellPress = (stock: Stock) => {
-    setSelectedStock(stock);
-    setTransactionType('sell');
-    setShowModal(true);
-  };
-
-  const handleTransactionConfirm = async (quantity: number): Promise<boolean> => {
-    if (!selectedStock) return false;
-
-    try {
-      if (transactionType === 'buy') {
-        const result = await buyStock(selectedStock.id, quantity);
-        return result.success;
-      } else {
-        const result = await sellStock(selectedStock.id, quantity);
-        return result.success;
-      }
-    } catch {
-      return false;
-    }
-  };
+  useEffect(() => {
+    console.log('PortfolioScreen mounted, fetching wallet and transactions...');
+    refetch();
+    refetchTx();
+  }, [refetch, refetchTx]);
 
   if (loading) {
     return (
@@ -69,12 +43,18 @@ export const PortfolioScreen: React.FC<PortfolioScreenProps> = ({ onNavigateToHo
     );
   }
 
-  if (error || !portfolio) {
+  if (error || !wallet) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <StatusBar barStyle="light-content" backgroundColor={colors.background} />
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error || 'Failed to load portfolio'}</Text>
+          <TouchableOpacity 
+            style={styles.retryButton}
+            onPress={() => refetch()}
+          >
+            <Text style={styles.retryText}>Retry</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -86,8 +66,7 @@ export const PortfolioScreen: React.FC<PortfolioScreenProps> = ({ onNavigateToHo
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <PortfolioHeader
-          totalAmount={portfolio.totalAmount}
-          holdingsCount={portfolio.stocks.length}
+          totalAmount={wallet?.total_balance || 0}
         />
 
         {/* Statistics Section */}
@@ -95,19 +74,18 @@ export const PortfolioScreen: React.FC<PortfolioScreenProps> = ({ onNavigateToHo
           <View style={styles.statisticsRow}>
             <StatisticsBox
               label="Total"
-              value={`₹${portfolio.totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`}
-              color="#0F172A"
+              value={`₹${(wallet?.total_balance || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`}
             />
             <View style={styles.divider} />
             <StatisticsBox
               label="Invested"
-              value={`₹${portfolio.investedAmount.toLocaleString('en-IN', { maximumFractionDigits: 2 })}`}
+              value={`₹${(wallet?.invested_amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`}
               color="#3B82F6"
             />
             <View style={styles.divider} />
             <StatisticsBox
               label="Cash"
-              value={`₹${(portfolio.totalAmount - portfolio.investedAmount).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`}
+              value={`₹${(wallet?.available_cash || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`}
               color="#34D399"
             />
           </View>
@@ -126,63 +104,142 @@ export const PortfolioScreen: React.FC<PortfolioScreenProps> = ({ onNavigateToHo
         {/* Holdings Section */}
         <View style={styles.holdingsSection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Your Holdings</Text>
+            <Text style={styles.sectionTitle}>Your Holdings ({wallet?.holdings?.length || 0})</Text>
           </View>
 
-          {portfolio.stocks.length === 0 ? (
+          {!wallet?.holdings || wallet.holdings.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>No holdings yet</Text>
             </View>
           ) : (
             <View style={styles.holdingsList}>
-              {portfolio.stocks.map(stock => (
-                <HoldingCard
-                  key={stock.id}
-                  symbol={stock.symbol}
-                  priceChange={stock.change}
-                  units={stock.quantity || 200}
-                  averagePrice={stock.price * 0.95}
-                  currentPrice={stock.price}
-                  value={stock.price * (stock.quantity || 200)}
-                  changePercent={stock.changePercent}
-                  onPress={() => {
-                    setSelectedStock(stock);
-                    setTransactionType('buy');
-                    setShowModal(true);
-                  }}
-                />
-              ))}
+              {wallet.holdings.map((holding: any, index: number) => {
+                const isProfit = (holding.unrealized_pnl || 0) >= 0;
+                return (
+                  <View key={index} style={styles.holdingCard}>
+                    {/* Top Row: Symbol and Current Value */}
+                    <View style={styles.holdingHeader}>
+                      <View>
+                        <Text style={styles.holdingSymbol}>{holding.symbol || 'N/A'}</Text>
+                        <Text style={styles.holdingQty}>Qty: {holding.quantity || 0}</Text>
+                      </View>
+                      <View style={styles.holdingRight}>
+                        <Text style={styles.holdingValue}>
+                          ₹{(holding.current_value || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        </Text>
+                        <Text style={[
+                          styles.holdingPercentage,
+                          { color: isProfit ? colors.success : colors.error }
+                        ]}>
+                          {isProfit ? '+' : ''}{(holding.percentage || 0).toFixed(2)}%
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Middle Row: Price Information */}
+                    <View style={styles.holdingDetails}>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Current Price:</Text>
+                        <Text style={styles.detailValue}>
+                          ₹{(holding.current_price || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        </Text>
+                      </View>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Avg Cost:</Text>
+                        <Text style={styles.detailValue}>
+                          ₹{(holding.average_cost || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Bottom Row: P&L */}
+                    <View style={styles.holdingFooter}>
+                      <Text style={styles.pnlLabel}>Unrealized P&L:</Text>
+                      <Text style={[
+                        styles.pnlValue,
+                        { color: isProfit ? colors.success : colors.error }
+                      ]}>
+                        {isProfit ? '+' : ''}₹{(holding.unrealized_pnl || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                      </Text>
+                    </View>
+                  </View>
+                );
+              })}
             </View>
           )}
         </View>
 
-        {/* Recent Transactions Section */}
+        {/* Transactions Section */}
         <View style={styles.transactionsSection}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>📊 Recent Transactions</Text>
+            <Text style={styles.sectionTitle}>Recent Transactions ({transactions.length})</Text>
           </View>
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>📋 Transaction history coming soon</Text>
-          </View>
+
+          {transactions.length === 0 ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No transactions yet</Text>
+            </View>
+          ) : (
+            <View style={styles.transactionsList}>
+              {transactions.map((transaction: any, index: number) => {
+                const isBuy = transaction.type === 'BUY';
+                const createdDate = new Date(transaction.created_at).toLocaleDateString('en-IN');
+                const createdTime = new Date(transaction.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+                
+                return (
+                  <View key={index} style={styles.transactionCard}>
+                    {/* Header: Type and Symbol */}
+                    <View style={styles.transactionHeader}>
+                      <View style={styles.typeContainer}>
+                        <Text style={[
+                          styles.transactionType,
+                          { color: isBuy ? colors.success : colors.error }
+                        ]}>
+                          {transaction.type}
+                        </Text>
+                        <Text style={styles.transactionSymbol}>{transaction.symbol}</Text>
+                      </View>
+                      <View style={styles.amountContainer}>
+                        <Text style={[
+                          styles.transactionAmount,
+                          { color: isBuy ? colors.error : colors.success }
+                        ]}>
+                          {isBuy ? '-' : '+'}₹{(transaction.amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        </Text>
+                        <Text style={styles.transactionQty}>Qty: {transaction.quantity}</Text>
+                      </View>
+                    </View>
+
+                    {/* Details Row */}
+                    <View style={styles.transactionDetails}>
+                      <View style={styles.detailItem}>
+                        <Text style={styles.detailLabel}>Price</Text>
+                        <Text style={styles.detailValue}>
+                          ₹{(transaction.price || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        </Text>
+                      </View>
+                      <View style={styles.detailItem}>
+                        <Text style={styles.detailLabel}>Fee</Text>
+                        <Text style={styles.detailValue}>
+                          ₹{(transaction.fee || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                        </Text>
+                      </View>
+                      <View style={styles.detailItem}>
+                        <Text style={styles.detailLabel}>Date</Text>
+                        <Text style={styles.detailValue}>{createdDate}</Text>
+                      </View>
+                      <View style={styles.detailItem}>
+                        <Text style={styles.detailLabel}>Time</Text>
+                        <Text style={styles.detailValue}>{createdTime}</Text>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
+            </View>
+          )}
         </View>
-
-        <View style={{ height: 20 }} />
       </ScrollView>
-
-      {/* Buy/Sell Modal */}
-      {selectedStock && (
-        <BuySellModal
-          visible={showModal}
-          stockSymbol={selectedStock.symbol}
-          stockPrice={selectedStock.price}
-          type={transactionType}
-          onClose={() => {
-            setShowModal(false);
-            setSelectedStock(null);
-          }}
-          onConfirm={handleTransactionConfirm}
-        />
-      )}
     </SafeAreaView>
   );
 };
@@ -277,8 +334,155 @@ const styles = StyleSheet.create({
     color: '#B0B8D4',
     fontSize: 14,
   },
+  holdingCard: {
+    backgroundColor: '#1A1F3A',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2D3556',
+    padding: 16,
+  },
+  holdingHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  holdingSymbol: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  holdingQty: {
+    color: '#B0B8D4',
+    fontSize: 12,
+  },
+  holdingRight: {
+    alignItems: 'flex-end',
+  },
+  holdingValue: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  holdingPercentage: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  holdingDetails: {
+    marginBottom: 12,
+    borderRadius: 8,
+    backgroundColor: '#0F172A',
+    padding: 12,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  detailRow_last: {
+    marginBottom: 0,
+  },
+  detailLabel: {
+    color: '#B0B8D4',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  detailValue: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  holdingFooter: {
+    borderTopWidth: 1,
+    borderTopColor: '#2D3556',
+    paddingTop: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  pnlLabel: {
+    color: '#B0B8D4',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  pnlValue: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  avgPrice: {
+    color: '#B0B8D4',
+    fontSize: 12,
+  },
+  retryButton: {
+    marginTop: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+  },
+  retryText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
   transactionsSection: {
     paddingHorizontal: 16,
+    marginBottom: 24,
+  },
+  transactionsList: {
+    gap: 12,
+  },
+  transactionCard: {
+    backgroundColor: '#1A1F3A',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2D3556',
+    padding: 16,
+  },
+  transactionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  typeContainer: {
+    flex: 1,
+  },
+  transactionType: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  transactionSymbol: {
+    fontSize: 12,
+    color: '#B0B8D4',
+    fontWeight: '500',
+  },
+  amountContainer: {
+    alignItems: 'flex-end',
+  },
+  transactionAmount: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  transactionQty: {
+    fontSize: 12,
+    color: '#B0B8D4',
+    fontWeight: '500',
+  },
+  transactionDetails: {
+    borderTopWidth: 1,
+    borderTopColor: '#2D3556',
+    paddingTop: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+  },
+  detailItem: {
+    width: '48%',
+    marginBottom: 8,
   },
   emptyState: {
     backgroundColor: '#1A1F3A',

@@ -23,7 +23,10 @@ export const useTransactions = (): UseTransactionsResult => {
         offset: 0,
       });
 
-      setTransactions(Array.isArray(data) ? data : data.transactions || []);
+      // Handle both array and object response formats
+      const txArray = Array.isArray(data) ? data : data.transactions || [];
+      setTransactions(txArray);
+      console.log('Transactions fetched:', txArray.length);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch transactions';
       setError(errorMessage);
@@ -60,6 +63,7 @@ export const useWallet = (): UseWalletResult => {
 
       const data = await tradingRemoteDatasource.getWallet();
       setWallet(data);
+      console.log('Wallet data set in state:', data);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch wallet';
       setError(errorMessage);

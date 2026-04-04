@@ -81,13 +81,19 @@ export class TradingRemoteDatasource {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
             ...authHeader,
           },
         }
       );
 
       if (!response.ok) {
-        const errorData: ApiErrorResponse = await response.json();
+        let errorData: ApiErrorResponse = {};
+        try {
+          errorData = await response.json();
+        } catch (parseError) {
+          errorData = { message: `HTTP ${response.status}` };
+        }
         console.error('Wallet API Error:', errorData);
         throw new Error(
           errorData.message ||
@@ -98,7 +104,30 @@ export class TradingRemoteDatasource {
 
       const data = await response.json();
       console.log('Wallet data received:', data);
-      return data;
+      
+      // Map API response to standardized format
+      // API returns: positions, but we expect: holdings
+      const mappedData = {
+        user_id: data.user_id,
+        total_balance: data.total_balance,
+        available_cash: data.available_cash,
+        invested_amount: data.invested_amount || 0,
+        last_updated: data.last_updated,
+        // Convert positions to holdings format with all details
+        holdings: data.positions ? Object.values(data.positions).map((position: any) => ({
+          symbol: position.symbol,
+          quantity: position.quantity,
+          current_price: position.current_price,
+          average_cost: position.average_cost,
+          current_value: position.current_price * position.quantity,
+          unrealized_pnl: position.unrealized_pnl,
+          percentage: position.percentage,
+        })) : [],
+      };
+      
+      console.log('Mapped Holdings count:', mappedData.holdings.length);
+      console.log('Holdings:', mappedData.holdings);
+      return mappedData;
     } catch (error) {
       console.error('getWallet error:', error);
       throw error;

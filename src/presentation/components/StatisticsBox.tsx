@@ -14,7 +14,7 @@ interface StatisticsBoxProps {
 export const StatisticsBox: React.FC<StatisticsBoxProps> = ({
   label,
   value,
-  color = '#0F172A',
+  color = '#FFFFFF',
 }) => {
   return (
     <View style={styles.container}>
