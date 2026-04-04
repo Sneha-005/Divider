@@ -1,182 +1,175 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  Dimensions,
-  TouchableOpacity,
-  FlatList,
-} from 'react-native';
-import { LineChart } from 'react-native-chart-kit';
+import React from 'react';
+import { View, Text, StyleSheet, SafeAreaView, ScrollView, ActivityIndicator } from 'react-native';
+import { useStocks } from '../hooks/useStock';
 
-const screenWidth = Dimensions.get('window').width;
-
-const timeframes = ['1 Min', '5 Min', '15 Min', '1 Hour'];
-
-export default function ChartScreen() {
-  const [selectedTF, setSelectedTF] = useState('1 Min');
-
-  const chartData = {
-    labels: ['10', '11', '12', '1', '2', '3'],
-    datasets: [
-      {
-        data: [100, 105, 102, 108, 107, 111],
-      },
-    ],
-  };
-
-  const tableData = [
-    { time: '14:40', open: 102.8, high: 103.5, low: 102.5, close: 103.1 },
-    { time: '14:39', open: 102.5, high: 103.2, low: 102.3, close: 102.8 },
-    { time: '14:38', open: 102.0, high: 103.8, low: 102.0, close: 103.2 },
-    { time: '14:37', open: 102.5, high: 103.1, low: 102.4, close: 102.5 },
-  ];
+export const ChartScreen: React.FC = () => {
+  const { stocks, loading, error } = useStocks();
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>📊 Market Charts</Text>
+          <Text style={styles.headerSubtitle}>Stock Performance Analysis</Text>
+        </View>
 
-      {/* HEADER */}
-      <Text style={styles.title}>Analytics</Text>
+        {/* Content */}
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#1E40AF" />
+          </View>
+        ) : error ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : (
+          <View style={styles.chartContainer}>
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Top Gainers</Text>
+              {stocks.slice(0, 3).map(stock => (
+                <View key={stock.id} style={styles.chartItem}>
+                  <View style={styles.itemLeft}>
+                    <Text style={styles.symbolText}>{stock.symbol}</Text>
+                    <Text style={styles.priceText}>₹{stock.price.toFixed(2)}</Text>
+                  </View>
+                  <View
+                    style={[
+                      styles.changeIndicator,
+                      { backgroundColor: stock.changePercent >= 0 ? '#34D399' : '#EF4444' },
+                    ]}
+                  >
+                    <Text style={styles.changeText}>
+                      {stock.changePercent >= 0 ? '↑' : '↓'} {Math.abs(stock.changePercent).toFixed(2)}%
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
 
-      {/* TIMEFRAME */}
-      <View style={styles.tfRow}>
-        {timeframes.map(tf => (
-          <TouchableOpacity
-            key={tf}
-            style={[
-              styles.tfBtn,
-              selectedTF === tf && styles.activeTF,
-            ]}
-            onPress={() => setSelectedTF(tf)}
-          >
-            <Text
-              style={[
-                styles.tfText,
-                selectedTF === tf && { color: '#fff' },
-              ]}
-            >
-              {tf}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {/* CHART */}
-      <View style={styles.chartCard}>
-        <LineChart
-          data={chartData}
-          width={screenWidth - 32}
-          height={250}
-          withDots={false}
-          withShadow={false}
-          withInnerLines={false}
-          withOuterLines={false}
-          chartConfig={{
-            backgroundGradientFrom: '#fff',
-            backgroundGradientTo: '#fff',
-            color: () => '#3b5bdb',
-            labelColor: () => '#999',
-            strokeWidth: 2,
-          }}
-          bezier
-          style={{ borderRadius: 16 }}
-        />
-      </View>
-
-      {/* TABLE TITLE */}
-      <Text style={styles.section}>Candle Data</Text>
-
-      {/* TABLE HEADER */}
-      <View style={styles.tableHeader}>
-        <Text style={styles.cell}>Time</Text>
-        <Text style={styles.cell}>Open</Text>
-        <Text style={styles.cell}>High</Text>
-        <Text style={styles.cell}>Low</Text>
-        <Text style={styles.cell}>Close</Text>
-      </View>
-
-      {/* TABLE LIST */}
-      <FlatList
-        data={tableData}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={({ item }) => (
-          <View style={styles.rowItem}>
-            <Text style={styles.cell}>{item.time}</Text>
-            <Text style={styles.cell}>₹{item.open}</Text>
-            <Text style={[styles.cell, { color: 'green' }]}>₹{item.high}</Text>
-            <Text style={[styles.cell, { color: 'red' }]}>₹{item.low}</Text>
-            <Text style={styles.cell}>₹{item.close}</Text>
+            <View style={styles.card}>
+              <Text style={styles.cardTitle}>Market Analysis</Text>
+              <View style={styles.analysisBox}>
+                <Text style={styles.analysisLabel}>Total Stocks Monitored</Text>
+                <Text style={styles.analysisValue}>{stocks.length}</Text>
+              </View>
+              <View style={styles.analysisBox}>
+                <Text style={styles.analysisLabel}>Average Change</Text>
+                <Text style={styles.analysisValue}>
+                  {(stocks.reduce((a, b) => a + b.changePercent, 0) / stocks.length).toFixed(2)}%
+                </Text>
+              </View>
+            </View>
           </View>
         )}
-      />
-
-    </View>
+      </ScrollView>
+    </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f4f6f8',
-    padding: 16,
+    backgroundColor: '#F8FAFC',
   },
-
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 10,
+  header: {
+    paddingHorizontal: 16,
+    paddingVertical: 20,
   },
-
-  tfRow: {
-    flexDirection: 'row',
-    marginBottom: 10,
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 4,
   },
-
-  tfBtn: {
-    padding: 8,
-    borderRadius: 8,
-    marginRight: 6,
-    backgroundColor: '#eee',
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#94A3B8',
   },
-
-  activeTF: {
-    backgroundColor: '#3b5bdb',
+  loadingContainer: {
+    paddingVertical: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-
-  tfText: {
-    fontSize: 12,
+  errorContainer: {
+    marginHorizontal: 16,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    backgroundColor: '#FEE2E2',
+    borderRadius: 12,
+    marginBottom: 20,
   },
-
-  chartCard: {
-    backgroundColor: '#fff',
+  errorText: {
+    color: '#991B1B',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  chartContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
+  card: {
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
-    padding: 10,
-    marginBottom: 15,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-
-  section: {
-    fontWeight: 'bold',
-    marginBottom: 8,
+  cardTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 16,
   },
-
-  tableHeader: {
+  chartItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: '#ddd',
-    padding: 10,
-    borderRadius: 8,
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
   },
-
-  rowItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 10,
-    backgroundColor: '#fff',
-    marginTop: 5,
-    borderRadius: 8,
+  itemLeft: {
+    flex: 1,
   },
-
-  cell: {
+  symbolText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  priceText: {
     fontSize: 12,
+    color: '#64748B',
+  },
+  changeIndicator: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  changeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  analysisBox: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F1F5F9',
+  },
+  analysisLabel: {
+    fontSize: 14,
+    color: '#64748B',
+  },
+  analysisValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E40AF',
   },
 });
+
+export default ChartScreen;

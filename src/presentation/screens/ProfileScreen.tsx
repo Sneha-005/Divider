@@ -1,175 +1,280 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  Switch,
+  SafeAreaView,
   ScrollView,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 
-const ProfileScreen = () => {
-  const [settings, setSettings] = useState({
-    alerts: true,
-    trades: true,
-    news: false,
-    twoFA: true,
-  });
-
-  const toggle = (key: keyof typeof settings) => {
-    setSettings(prev => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
-  };
-
+export const ProfileScreen: React.FC<{ onLogout?: () => void }> = ({ onLogout }) => {
   return (
-    <ScrollView style={styles.container}>
-      
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>H</Text>
+    <SafeAreaView style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>👤 Profile</Text>
+          <Text style={styles.headerSubtitle}>Manage Your Account</Text>
         </View>
 
-        <Text style={styles.name}>Harsh</Text>
-        <Text style={styles.email}>harsh@example.com</Text>
-      </View>
+        {/* Profile Info Card */}
+        <View style={styles.profileCard}>
+          <View style={styles.avatarContainer}>
+            <Text style={styles.avatar}>👤</Text>
+          </View>
 
-      {/* Bank Card */}
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Bank Account</Text>
-        <Text style={styles.bank}>HDFC Bank - Savings</Text>
-        <Text style={styles.account}>**** 1234</Text>
-        <Text style={styles.verified}>✔ Verified</Text>
-      </View>
-
-      {/* Settings */}
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Notifications</Text>
-
-        <View style={styles.row}>
-          <Text>Alerts</Text>
-          <Switch value={settings.alerts} onValueChange={() => toggle('alerts')} />
+          <View style={styles.profileInfo}>
+            <Text style={styles.userName}>Harsh Kumar</Text>
+            <Text style={styles.userEmail}>harsh@example.com</Text>
+            <Text style={styles.userMember}>Member since Apr 2026</Text>
+          </View>
         </View>
 
-        <View style={styles.row}>
-          <Text>Trades</Text>
-          <Switch value={settings.trades} onValueChange={() => toggle('trades')} />
+        {/* Account Stats */}
+        <View style={styles.statsContainer}>
+          <View style={styles.statCard}>
+            <Text style={styles.statIcon}>🎯</Text>
+            <Text style={styles.statLabel}>Portfolio Value</Text>
+            <Text style={styles.statValue}>₹84,887</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statIcon}>📈</Text>
+            <Text style={styles.statLabel}>Total Gain/Loss</Text>
+            <Text style={[styles.statValue, { color: '#EF4444' }]}>-₹15,009</Text>
+          </View>
         </View>
 
-        <View style={styles.row}>
-          <Text>News</Text>
-          <Switch value={settings.news} onValueChange={() => toggle('news')} />
+        {/* Menu Items */}
+        <View style={styles.menuContainer}>
+          <TouchableOpacity style={styles.menuItem}>
+            <View style={styles.menuContent}>
+              <Text style={styles.menuIcon}>🔐</Text>
+              <View style={styles.menuText}>
+                <Text style={styles.menuTitle}>Security Settings</Text>
+                <Text style={styles.menuSubtitle}>Change password, 2FA</Text>
+              </View>
+            </View>
+            <Text style={styles.menuArrow}>›</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem}>
+            <View style={styles.menuContent}>
+              <Text style={styles.menuIcon}>💳</Text>
+              <View style={styles.menuText}>
+                <Text style={styles.menuTitle}>Payment Methods</Text>
+                <Text style={styles.menuSubtitle}>Manage your accounts</Text>
+              </View>
+            </View>
+            <Text style={styles.menuArrow}>›</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem}>
+            <View style={styles.menuContent}>
+              <Text style={styles.menuIcon}>📋</Text>
+              <View style={styles.menuText}>
+                <Text style={styles.menuTitle}>Transaction History</Text>
+                <Text style={styles.menuSubtitle}>View your activities</Text>
+              </View>
+            </View>
+            <Text style={styles.menuArrow}>›</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem}>
+            <View style={styles.menuContent}>
+              <Text style={styles.menuIcon}>⚙️</Text>
+              <View style={styles.menuText}>
+                <Text style={styles.menuTitle}>Settings & Preferences</Text>
+                <Text style={styles.menuSubtitle}>Customize your experience</Text>
+              </View>
+            </View>
+            <Text style={styles.menuArrow}>›</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem}>
+            <View style={styles.menuContent}>
+              <Text style={styles.menuIcon}>ℹ️</Text>
+              <View style={styles.menuText}>
+                <Text style={styles.menuTitle}>About Divider</Text>
+                <Text style={styles.menuSubtitle}>App info & version</Text>
+              </View>
+            </View>
+            <Text style={styles.menuArrow}>›</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem}>
+            <View style={styles.menuContent}>
+              <Text style={styles.menuIcon}>📞</Text>
+              <View style={styles.menuText}>
+                <Text style={styles.menuTitle}>Help & Support</Text>
+                <Text style={styles.menuSubtitle}>Get help from our team</Text>
+              </View>
+            </View>
+            <Text style={styles.menuArrow}>›</Text>
+          </TouchableOpacity>
         </View>
-      </View>
 
-      {/* Security */}
-      <View style={styles.card}>
-        <Text style={styles.sectionTitle}>Security</Text>
-
-        <View style={styles.row}>
-          <Text>Two Factor Authentication</Text>
-          <Switch value={settings.twoFA} onValueChange={() => toggle('twoFA')} />
+        {/* Logout Button */}
+        <View style={styles.logoutContainer}>
+          <TouchableOpacity style={styles.logoutButton} onPress={onLogout}>
+            <Text style={styles.logoutText}>🚪 Logout</Text>
+          </TouchableOpacity>
         </View>
-      </View>
-
-      {/* Logout */}
-      <TouchableOpacity style={styles.logout}>
-        <Text style={styles.logoutText}>Logout</Text>
-      </TouchableOpacity>
-
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
-
-export default ProfileScreen;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f4f6f8',
+    backgroundColor: '#F8FAFC',
   },
-
   header: {
-    alignItems: 'center',
-    padding: 30,
-    backgroundColor: '#3b5bdb',
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
+    paddingHorizontal: 16,
+    paddingVertical: 20,
   },
-
-  avatar: {
-    backgroundColor: '#fff',
-    height: 70,
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 4,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: '#94A3B8',
+  },
+  profileCard: {
+    marginHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  avatarContainer: {
     width: 70,
+    height: 70,
     borderRadius: 35,
+    backgroundColor: '#E0E7FF',
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 16,
   },
-
-  avatarText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#3b5bdb',
+  avatar: {
+    fontSize: 40,
   },
-
-  name: {
-    fontSize: 20,
-    color: '#fff',
-    marginTop: 10,
-    fontWeight: 'bold',
+  profileInfo: {
+    flex: 1,
   },
-
-  email: {
-    color: '#dfe4ff',
+  userName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0F172A',
+    marginBottom: 4,
   },
-
-  card: {
-    backgroundColor: '#fff',
-    margin: 16,
+  userEmail: {
+    fontSize: 14,
+    color: '#64748B',
+    marginBottom: 2,
+  },
+  userMember: {
+    fontSize: 12,
+    color: '#94A3B8',
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    gap: 12,
+    marginBottom: 20,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
     borderRadius: 16,
     padding: 16,
-    elevation: 3,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-
-  sectionTitle: {
-    fontWeight: 'bold',
-    marginBottom: 10,
+  statIcon: {
+    fontSize: 28,
+    marginBottom: 8,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  statValue: {
     fontSize: 16,
+    fontWeight: '700',
+    color: '#34D399',
+    textAlign: 'center',
   },
-
-  bank: {
-    fontSize: 15,
+  menuContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 20,
   },
-
-  account: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginVertical: 5,
-  },
-
-  verified: {
-    color: 'green',
-    fontWeight: '600',
-  },
-
-  row: {
+  menuItem: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginVertical: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
   },
-
-  logout: {
-    margin: 20,
-    backgroundColor: '#ff4d4f',
-    padding: 15,
+  menuContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  menuIcon: {
+    fontSize: 22,
+    marginRight: 12,
+  },
+  menuText: {
+    flex: 1,
+  },
+  menuTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#0F172A',
+    marginBottom: 2,
+  },
+  menuSubtitle: {
+    fontSize: 12,
+    color: '#94A3B8',
+  },
+  menuArrow: {
+    fontSize: 20,
+    color: '#CBD5E1',
+  },
+  logoutContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 20,
+  },
+  logoutButton: {
+    backgroundColor: '#FEE2E2',
+    paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: '#FECACA',
   },
-
   logoutText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: '#DC2626',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });
+
+export default ProfileScreen;

@@ -1,46 +1,87 @@
-import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
-    ActivityIndicator,
-    Alert,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  View,
+  StyleSheet,
+  ScrollView,
+  Text,
+  TouchableOpacity,
 } from 'react-native';
+import { colors } from '../../shared/theme/colors';
+import { validators, getPasswordErrorMessage } from '../../shared/validators';
+import { TextInput } from '../components/TextInput';
+import { Button } from '../components/Button';
+import { LoadingOverlay } from '../components/LoadingOverlay';
+import { useAuth } from '../hooks/useAuth';
 
-const SignupScreen: React.FC = () => {
-  const router = useRouter();
+interface SignupScreenProps {
+  onNavigateToLogin: () => void;
+  onSignupSuccess?: (username?: string) => void;
+}
+
+const SignupScreen: React.FC<SignupScreenProps> = ({
+  onNavigateToLogin,
+  onSignupSuccess,
+}) => {
   const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
-  const validateForm = () => {
-    const newErrors: { [key: string]: string } = {};
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [confirmPasswordError, setConfirmPasswordError] = useState<string | null>(null);
+  const [termsError, setTermsError] = useState<string | null>(null);
 
-    if (!fullName.trim()) {
-      newErrors.fullName = 'Full name is required';
+  const { signup, loading, error: authError } = useAuth();
+
+  const validateForm = (): boolean => {
+    let isValid = true;
+
+    if (!email) {
+      setEmailError('Email is required');
+      isValid = false;
+    } else if (!validators.email(email)) {
+      setEmailError('Invalid email format');
+      isValid = false;
+    } else {
+      setEmailError(null);
     }
-    if (!email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!email.includes('@')) {
-      newErrors.email = 'Invalid email format';
+
+    if (!username) {
+      setUsernameError('Username is required');
+      isValid = false;
+    } else if (!validators.username(username)) {
+      setUsernameError('Username must be 3-20 characters (alphanumeric + _)');
+      isValid = false;
+    } else {
+      setUsernameError(null);
     }
-    if (!password) {
-      newErrors.password = 'Password is required';
-    } else if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+
+    const passwordErrorMsg = getPasswordErrorMessage(password);
+    if (passwordErrorMsg) {
+      setPasswordError(passwordErrorMsg);
+      isValid = false;
+    } else {
+      setPasswordError(null);
     }
+
     if (password !== confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
+      setConfirmPasswordError('Passwords do not match');
+      isValid = false;
+    } else {
+      setConfirmPasswordError(null);
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    if (!termsAccepted) {
+      setTermsError('You must accept the terms');
+      isValid = false;
+    } else {
+      setTermsError(null);
+    }
+
+    return isValid;
   };
 
   const handleSignup = async () => {
@@ -48,223 +89,196 @@ const SignupScreen: React.FC = () => {
       return;
     }
 
-    setLoading(true);
-    try {
-      const response = await fetch('http://localhost:8080/auth/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email,
-          password,
-          fullName,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        Alert.alert('Registration Failed', data.message || 'Failed to create account');
-        return;
-      }
-
-      Alert.alert('Success', 'Account created successfully!', [
-        {
-          text: 'OK',
-          onPress: () => router.push('/LoginScreen'),
-        },
-      ]);
-    } catch (error) {
-      Alert.alert('Error', 'Failed to register. Please check your connection.');
-      console.error('Registration error:', error);
-    } finally {
-      setLoading(false);
+    const result = await signup({ email, username, password });
+    if (result.success) {
+      onSignupSuccess?.(username);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.card}>
-        {/* Logo */}
-        <Text style={styles.logo}>📱</Text>
+    <ScrollView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      contentContainerStyle={styles.content}
+    >
+      <LoadingOverlay visible={loading} message="Creating account..." />
 
-        {/* Title */}
-        <Text style={styles.title}>StockTrack</Text>
-        <Text style={styles.subtitle}>Create Your Account</Text>
-
-        {/* Full Name Input */}
-        <TextInput
-          placeholder="Full Name"
-          style={[styles.input, errors.fullName && styles.inputError]}
-          placeholderTextColor="#666"
-          value={fullName}
-          onChangeText={(text) => {
-            setFullName(text);
-            if (errors.fullName) {
-              setErrors({ ...errors, fullName: '' });
-            }
-          }}
-          editable={!loading}
-        />
-        {errors.fullName && <Text style={styles.errorText}>{errors.fullName}</Text>}
-
-        {/* Email Input */}
-        <TextInput
-          placeholder="Email Address"
-          style={[styles.input, errors.email && styles.inputError]}
-          keyboardType="email-address"
-          placeholderTextColor="#666"
-          value={email}
-          onChangeText={(text) => {
-            setEmail(text);
-            if (errors.email) {
-              setErrors({ ...errors, email: '' });
-            }
-          }}
-          editable={!loading}
-        />
-        {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
-
-        {/* Password Input */}
-        <TextInput
-          placeholder="Password"
-          secureTextEntry
-          style={[styles.input, errors.password && styles.inputError]}
-          placeholderTextColor="#666"
-          value={password}
-          onChangeText={(text) => {
-            setPassword(text);
-            if (errors.password) {
-              setErrors({ ...errors, password: '' });
-            }
-          }}
-          editable={!loading}
-        />
-        {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
-
-        {/* Confirm Password Input */}
-        <TextInput
-          placeholder="Confirm Password"
-          secureTextEntry
-          style={[styles.input, errors.confirmPassword && styles.inputError]}
-          placeholderTextColor="#666"
-          value={confirmPassword}
-          onChangeText={(text) => {
-            setConfirmPassword(text);
-            if (errors.confirmPassword) {
-              setErrors({ ...errors, confirmPassword: '' });
-            }
-          }}
-          editable={!loading}
-        />
-        {errors.confirmPassword && (
-          <Text style={styles.errorText}>{errors.confirmPassword}</Text>
-        )}
-
-        {/* Sign Up Button */}
-        <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleSignup}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Create Account</Text>
-          )}
-        </TouchableOpacity>
-
-        {/* Login Link */}
-        <View style={styles.loginLinkContainer}>
-          <Text style={styles.loginLinkText}>Already have an account? </Text>
-          <TouchableOpacity onPress={() => router.push('/LoginScreen')} disabled={loading}>
-            <Text style={styles.loginLinkButton}>Sign In</Text>
-          </TouchableOpacity>
-        </View>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.title}>Create Account</Text>
+        <Text style={styles.subtitle}>Join Divider today</Text>
       </View>
-    </View>
+
+      {/* Error Message */}
+      {authError && (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorBannerText}>{authError}</Text>
+        </View>
+      )}
+
+      {/* Form */}
+      <View style={styles.form}>
+        <TextInput
+          label="Email"
+          placeholder="Enter your email"
+          value={email}
+          onChangeText={setEmail}
+          error={emailError}
+          editable={!loading}
+          keyboardType="email-address"
+          autoCapitalize="none"
+        />
+
+        <TextInput
+          label="Username"
+          placeholder="Choose a username"
+          value={username}
+          onChangeText={setUsername}
+          error={usernameError}
+          editable={!loading}
+          autoCapitalize="none"
+        />
+
+        <TextInput
+          label="Password"
+          placeholder="Enter your password"
+          value={password}
+          onChangeText={setPassword}
+          error={passwordError}
+          editable={!loading}
+          secureTextEntry
+        />
+
+        <TextInput
+          label="Confirm Password"
+          placeholder="Confirm your password"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          error={confirmPasswordError}
+          editable={!loading}
+          secureTextEntry
+        />
+
+        {/* Terms Checkbox */}
+        <View style={styles.termsContainer}>
+          <TouchableOpacity
+            style={[
+              styles.checkbox,
+              termsAccepted && styles.checkboxChecked,
+            ]}
+            onPress={() => setTermsAccepted(!termsAccepted)}
+            disabled={loading}
+          >
+            {termsAccepted && <Text style={styles.checkmark}>✓</Text>}
+          </TouchableOpacity>
+          <Text style={styles.termsText}>I accept the Terms of Service</Text>
+        </View>
+        {termsError && <Text style={styles.errorText}>{termsError}</Text>}
+
+        <Button
+          title="Sign Up"
+          onPress={handleSignup}
+          loading={loading}
+          disabled={loading}
+        />
+      </View>
+
+      {/* Login Link */}
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>Already have an account? </Text>
+        <TouchableOpacity onPress={onNavigateToLogin} disabled={loading}>
+          <Text style={styles.linkText}>Log in</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
   );
 };
-
-export default SignupScreen;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#3b5bdb',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: colors.background,
   },
-  card: {
-    width: '90%',
-    backgroundColor: '#fff',
-    borderRadius: 20,
-    padding: 20,
-    alignItems: 'center',
+  content: {
+    flexGrow: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 30,
   },
-  logo: {
-    fontSize: 40,
-    marginBottom: 10,
+  header: {
+    marginBottom: 30,
+    alignItems: 'center',
   },
   title: {
-    fontSize: 26,
-    fontWeight: 'bold',
+    fontSize: 28,
+    fontWeight: '700',
+    color: colors.primary,
+    marginBottom: 4,
   },
   subtitle: {
-    color: 'gray',
-    marginBottom: 20,
     fontSize: 14,
+    color: colors.textSecondary,
   },
-  input: {
-    width: '100%',
+  errorBanner: {
+    backgroundColor: colors.secondary,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 20,
+  },
+  errorBannerText: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  form: {
+    marginBottom: 20,
+  },
+  termsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 10,
-    padding: 12,
-    marginVertical: 8,
-    color: '#000',
-    fontSize: 16,
-  },
-  inputError: {
-    borderColor: '#e74c3c',
-  },
-  errorText: {
-    color: '#e74c3c',
-    fontSize: 12,
-    alignSelf: 'flex-start',
-    marginLeft: 5,
-    marginTop: -5,
-    marginBottom: 5,
-  },
-  button: {
-    width: '100%',
-    backgroundColor: '#3b5bdb',
-    padding: 15,
-    borderRadius: 12,
-    marginTop: 20,
+    borderColor: colors.primary,
+    borderRadius: 4,
+    marginRight: 12,
+    justifyContent: 'center',
     alignItems: 'center',
   },
-  buttonDisabled: {
-    opacity: 0.6,
+  checkboxChecked: {
+    backgroundColor: colors.primary,
   },
-  buttonText: {
-    color: '#fff',
+  checkmark: {
+    color: colors.background,
+    fontSize: 14,
     fontWeight: 'bold',
-    fontSize: 16,
   },
-  loginLinkContainer: {
-    marginTop: 15,
+  termsText: {
+    color: colors.text,
+    fontSize: 14,
+    flex: 1,
+  },
+  errorText: {
+    color: colors.error,
+    fontSize: 12,
+    marginBottom: 12,
+  },
+  footer: {
     flexDirection: 'row',
     justifyContent: 'center',
+    marginTop: 'auto',
   },
-  loginLinkText: {
-    color: 'gray',
+  footerText: {
+    color: colors.textSecondary,
     fontSize: 14,
   },
-  loginLinkButton: {
-    color: '#3b5bdb',
-    fontWeight: 'bold',
+  linkText: {
+    color: colors.primary,
     fontSize: 14,
+    fontWeight: '600',
   },
 });
+
+export default SignupScreen;
