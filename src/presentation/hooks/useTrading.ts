@@ -84,7 +84,36 @@ export const useWallet = (): UseWalletResult => {
 interface TradeResult {
   success: boolean;
   message: string;
+  code?: string;
+  details?: any;
+  data?: {
+    status?: string;
+    symbol?: string;
+    type?: string;
+    quantity?: number;
+    price?: number;
+    total?: number;
+    fee?: number;
+    transaction_id?: string;
+    timestamp?: string;
+  };
   transaction_id?: string;
+  status?: string;
+  symbol?: string;
+  type?: string;
+  quantity?: number;
+  price?: number;
+  total?: number;
+  timestamp?: string;
+}
+
+interface ErrorResponse {
+  success: false;
+  error: {
+    code: string;
+    message: string;
+    details?: any;
+  };
 }
 
 interface TradingParams {
@@ -103,28 +132,99 @@ export const useExecuteTrade = () => {
       setLoading(true);
       setError(null);
 
-      console.log('Executing trade:', params);
+      console.log('🔄 Executing trade:', params);
       
-      const data = await tradingRemoteDatasource.createTransaction({
+      const response = await tradingRemoteDatasource.createTransaction({
         type: params.type === 'BUY' ? 'buy' : 'sell',
         symbol: params.symbol,
         quantity: params.quantity,
         price: params.price,
       });
 
-      console.log('Trade executed:', data);
+      console.log('📨 API Response:', response);
+
+      // Check if response indicates error with error field
+      if (response.error || response.success === false) {
+        // Error response structure: { success: false, error: { code, message, details } }
+        const errorCode = response.error?.code || 'UNKNOWN_ERROR';
+        const errorMessage = response.error?.message || response.message || 'Trade failed';
+        const errorDetails = response.error?.details;
+
+        console.error('❌ Trade API Error:', {
+          code: errorCode,
+          message: errorMessage,
+          details: errorDetails,
+        });
+
+        setError(errorMessage);
+        return {
+          success: false,
+          message: errorMessage,
+          code: errorCode,
+          details: errorDetails,
+        };
+      }
+
+      // Success response structure: API returns data directly
+      // e.g. { "status": "Trade executed successfully", "total": 1604.52, "symbol": "RELIANCE-CE-2900", ... }
+      if (response.status || response.total || response.symbol) {
+        console.log('✅ Trade executed successfully:', response);
+        
+        return {
+          success: true,
+          message: `${params.type} order executed successfully`,
+          data: {
+            status: response.status,
+            symbol: response.symbol || params.symbol,
+            type: response.type || params.type.toLowerCase(),
+            quantity: response.quantity || params.quantity,
+            price: response.price || params.price,
+            total: response.total,
+            fee: response.fee || (response.total * 0.005),
+            transaction_id: response.transaction_id,
+            timestamp: response.timestamp,
+          },
+        };
+      }
+
+      // Fallback for unexpected response format
+      console.warn('⚠️ Unexpected response format:', response);
       return {
         success: true,
         message: `${params.type} order executed successfully`,
-        transaction_id: data.transaction_id,
+        data: response,
       };
+
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Trade failed';
+      let errorMessage = 'Trade failed';
+      let errorCode = 'UNKNOWN_ERROR';
+      let errorDetails: any = null;
+
+      if (err instanceof Error) {
+        errorMessage = err.message;
+        
+        // Try to parse error as JSON if it's a stringified error response
+        try {
+          const errorData = JSON.parse(err.message);
+          if (errorData.error?.message) {
+            errorMessage = errorData.error.message;
+            errorCode = errorData.error.code;
+            errorDetails = errorData.error.details;
+          }
+        } catch (parseErr) {
+          // Keep the original error message
+        }
+      }
+
+      console.error('❌ Trade execution error:', errorMessage, err);
+      
       setError(errorMessage);
-      console.error('Trade error:', errorMessage);
+      
       return {
         success: false,
         message: errorMessage,
+        code: errorCode,
+        details: errorDetails,
       };
     } finally {
       setLoading(false);

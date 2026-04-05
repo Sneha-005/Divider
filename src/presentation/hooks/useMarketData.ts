@@ -31,8 +31,6 @@ export const useMarketData = (): UseMarketDataResult => {
 
   const connectWebSocket = async () => {
     try {
-      console.log('\n🔌 Starting WebSocket connection...');
-      
       // Get token from AsyncStorage
       const token = await AsyncStorage.getItem('auth_token');
       
@@ -46,23 +44,18 @@ export const useMarketData = (): UseMarketDataResult => {
         return;
       }
 
-      console.log('✅ Token retrieved:', token.length, 'characters');
-
       // Clear any previous connection
       if (wsRef.current) {
-        console.log('⚠️ Closing existing WebSocket connection');
         wsRef.current.close();
       }
 
       // Create WebSocket connection with token
       const wsUrl = `wss://divider-backend.onrender.com/ws?token=${token}`;
-      console.log('🌐 WebSocket URL:', wsUrl.substring(0, 50) + '...');
       
       const ws = new WebSocket(wsUrl);
       let messageCount = 0;
 
       ws.onopen = () => {
-        console.log('✅✅✅ WebSocket CONNECTED ✅✅✅');
         if (mountedRef.current) {
           setConnected(true);
           setError(null);
@@ -72,40 +65,23 @@ export const useMarketData = (): UseMarketDataResult => {
       };
 
       ws.onmessage = (event) => {
-        messageCount++;
         try {
-          console.log(`\n📨 Message #${messageCount}:`);
-          console.log('   Size:', event.data.length, 'bytes');
-          console.log('   Raw (first 150 chars):', event.data.substring(0, 150));
-          
           const data = JSON.parse(event.data);
-          console.log('   ✅ Parsed Successfully');
-          console.log('   Type:', Array.isArray(data) ? `Array (${data.length} items)` : typeof data);
           
           if (!mountedRef.current) {
-            console.warn('   ⚠️ Component unmounted, skipping state update');
             return;
           }
 
           // Handle array of market data
           if (Array.isArray(data)) {
-            console.log('   Setting', data.length, 'market items to state');
-            if (data.length > 0) {
-              console.log('   Sample:', JSON.stringify(data[0]));
-            }
             setMarketData(data);
           } else if (data && typeof data === 'object') {
-            console.log('   Setting single market item to state');
-            console.log('   Item:', JSON.stringify(data));
             setMarketData([data]);
-          } else {
-            console.warn('   ⚠️ Unexpected data type:', typeof data);
           }
           
           setError(null);
         } catch (parseError) {
-          console.error('❌ Parse Error:', parseError);
-          console.error('   Raw message:', event.data.substring(0, 300));
+          console.error('❌ WebSocket Parse Error:', parseError);
           if (mountedRef.current) {
             setError(`Parse error: ${parseError instanceof Error ? parseError.message : 'Unknown'}`);
           }
@@ -113,7 +89,6 @@ export const useMarketData = (): UseMarketDataResult => {
       };
 
       ws.onerror = (event: Event | string) => {
-        console.error('❌ WebSocket Error:', event);
         if (mountedRef.current) {
           setError('WebSocket connection error');
           setConnected(false);
@@ -121,7 +96,6 @@ export const useMarketData = (): UseMarketDataResult => {
       };
 
       ws.onclose = (event: any) => {
-        console.warn(`⚠️ WebSocket Closed: code=${event?.code || 'unknown'}, reason=${event?.reason || 'unknown'}`);
         if (mountedRef.current) {
           setConnected(false);
         }
@@ -133,12 +107,10 @@ export const useMarketData = (): UseMarketDataResult => {
             maxReconnectDelay
           );
           
-          console.log(`🔄 Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current + 1}/${maxReconnectAttempts})`);
           reconnectAttemptsRef.current += 1;
           
           reconnectTimeoutRef.current = setTimeout(() => {
             if (mountedRef.current) {
-              console.log('🔄 Attempting reconnect...');
               connectWebSocket();
             }
           }, delay);
@@ -153,10 +125,9 @@ export const useMarketData = (): UseMarketDataResult => {
       };
 
       wsRef.current = ws;
-      console.log('✅ WebSocket object created and handlers attached');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Connection failed';
-      console.error('❌ Connection Exception:', errorMessage, err);
+      console.error('❌ WebSocket Connection Error:', errorMessage);
       if (mountedRef.current) {
         setError(errorMessage);
         setLoading(false);
@@ -166,13 +137,10 @@ export const useMarketData = (): UseMarketDataResult => {
 
   useEffect(() => {
     mountedRef.current = true;
-    console.log('\n🚀 useMarketData Hook Mounted');
-    
     connectWebSocket();
 
     // Cleanup on unmount
     return () => {
-      console.log('🛑 useMarketData Hook Unmounting');
       mountedRef.current = false;
       
       if (reconnectTimeoutRef.current) {

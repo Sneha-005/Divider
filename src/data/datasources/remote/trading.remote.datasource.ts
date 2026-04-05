@@ -204,7 +204,7 @@ export class TradingRemoteDatasource {
 
   /**
    * Create a new transaction (Buy/Sell)
-   * POST /trading/transactions
+   * POST /trading/trade
    */
   async createTransaction(transactionData: {
     type: 'buy' | 'sell';
@@ -216,9 +216,10 @@ export class TradingRemoteDatasource {
       const authHeader = await this.getAuthHeader();
 
       console.log('Creating transaction:', transactionData);
+      console.log('Authorization header format:', authHeader.Authorization.substring(0, 20) + '...');
 
       const response = await this.fetchWithTimeout(
-        `${API_BASE_URL}/trading/transactions`,
+        `${API_BASE_URL}/trading/trade`,
         {
           method: 'POST',
           headers: {
@@ -230,18 +231,38 @@ export class TradingRemoteDatasource {
         }
       );
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+
+      // Get response as text first to see what we're dealing with
+      const responseText = await response.text();
+      console.log('Raw response:', responseText.substring(0, 200));
+
+      // Try to parse as JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('JSON parse failed, raw response:', responseText);
+        throw new Error(`Invalid JSON response: ${parseError instanceof Error ? parseError.message : 'Unknown'}`);
+      }
+
       if (!response.ok) {
-        const errorData: ApiErrorResponse = await response.json();
-        console.error('Create Transaction API Error:', errorData);
+        console.error('Trade API Error Response:', data);
+        
+        // Handle error response format: { success: false, error: { code, message, details } }
+        if (data.error?.message) {
+          throw new Error(data.error.message);
+        }
+        
         throw new Error(
-          errorData.message ||
-          errorData.error ||
-          `Create transaction error: ${response.status}`
+          data.message ||
+          data.error ||
+          `Trade API error: ${response.status}`
         );
       }
 
-      const data = await response.json();
-      console.log('Transaction created:', data);
+      console.log('Transaction created successfully:', data);
       return data;
     } catch (error) {
       console.error('createTransaction error:', error);

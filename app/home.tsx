@@ -10,13 +10,24 @@ import {
   StatusBar,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { Colors } from "../src/shared/theme/colors";
+import { colors } from "../src/shared/theme/colors";
 import { useMarketData } from "../src/presentation/hooks/useMarketData";
+import { useWallet } from "../src/presentation/hooks/useTrading";
+import { TradingModal } from "../src/presentation/components/TradingModal";
 import { debugWebSocket } from "../src/utils/websocketDebugger";
 
 export default function HomeScreen() {
   const router = useRouter();
   const { marketData, loading, connected, error } = useMarketData();
+  const { wallet, refetch: refetchWallet } = useWallet();
+  
+  // Trading modal state
+  const [tradingModalVisible, setTradingModalVisible] = React.useState(false);
+  const [selectedStock, setSelectedStock] = React.useState<{
+    symbol: string;
+    currentPrice: number;
+  } | null>(null);
+  const [tradeType, setTradeType] = React.useState<'BUY' | 'SELL'>('BUY');
 
   React.useEffect(() => {
     console.log('\n\n═══════════════════════════════════════════');
@@ -46,8 +57,39 @@ export default function HomeScreen() {
   const renderMarketItem = ({ item }: { item: any }) => {
     const isPositive = item.percentageChange >= 0;
     
+    const handleBuy = () => {
+      setSelectedStock({
+        symbol: item.symbol,
+        currentPrice: item.currentPrice,
+      });
+      setTradeType('BUY');
+      setTradingModalVisible(true);
+    };
+
+    const handleSell = () => {
+      setSelectedStock({
+        symbol: item.symbol,
+        currentPrice: item.currentPrice,
+      });
+      setTradeType('SELL');
+      setTradingModalVisible(true);
+    };
+
+    const handlePricePress = () => {
+      setSelectedStock({
+        symbol: item.symbol,
+        currentPrice: item.currentPrice,
+      });
+      setTradeType('BUY');
+      setTradingModalVisible(true);
+    };
+    
     return (
-      <View style={styles.marketCard}>
+      <TouchableOpacity 
+        style={styles.marketCard}
+        onPress={handlePricePress}
+        activeOpacity={0.7}
+      >
         <View style={styles.cardHeader}>
           <View>
             <Text style={styles.symbol}>{item.symbol}</Text>
@@ -68,13 +110,34 @@ export default function HomeScreen() {
             </Text>
           </View>
         </View>
-      </View>
+
+        {/* Action Buttons */}
+        <View style={styles.actionButtons}>
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.buyButton]}
+            onPress={handleBuy}
+          >
+            <Text style={styles.actionButtonText}>💰 Buy</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.actionButton, styles.sellButton]}
+            onPress={handleSell}
+          >
+            <Text style={styles.actionButtonText}>📊 Sell</Text>
+          </TouchableOpacity>
+        </View>
+      </TouchableOpacity>
     );
+  };
+
+  const handleTradeSuccess = () => {
+    // Refresh wallet data after successful trade
+    refetchWallet();
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
+      <StatusBar barStyle="light-content" backgroundColor={colors.background} />
       
       {/* Header */}
       <View style={styles.headerSection}>
@@ -95,7 +158,7 @@ export default function HomeScreen() {
       {/* Market Data List */}
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
           <Text style={styles.loadingText}>Connecting to market data...</Text>
         </View>
       ) : error ? (
@@ -139,6 +202,22 @@ export default function HomeScreen() {
           <Text style={styles.logoutButtonText}>Logout</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Trading Modal */}
+      {selectedStock && (
+        <TradingModal
+          visible={tradingModalVisible}
+          symbol={selectedStock.symbol}
+          currentPrice={selectedStock.currentPrice}
+          type={tradeType}
+          marketData={marketData}
+          onClose={() => {
+            setTradingModalVisible(false);
+            setSelectedStock(null);
+          }}
+          onSuccess={handleTradeSuccess}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -146,7 +225,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: colors.background,
   },
   headerSection: {
     paddingHorizontal: 16,
@@ -200,7 +279,7 @@ const styles = StyleSheet.create({
   retryButton: {
     paddingVertical: 12,
     paddingHorizontal: 24,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     borderRadius: 12,
   },
   retryText: {
@@ -223,6 +302,29 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  actionButtons: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  actionButton: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  buyButton: {
+    backgroundColor: "#34D399",
+  },
+  sellButton: {
+    backgroundColor: "#EF4444",
+  },
+  actionButtonText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
   symbol: {
     fontSize: 16,
@@ -266,7 +368,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   navButton: {
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary,
     paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",
@@ -286,20 +388,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: "#FFFFFF",
-  },
-});
-    flex: 1,
-  },
-  button: {
-    paddingVertical: 14,
-    paddingHorizontal: 40,
-    backgroundColor: Colors.button.primary,
-    borderRadius: 10,
-    marginBottom: 40,
-  },
-  buttonText: {
-    color: Colors.button.primaryText,
-    fontSize: 16,
-    fontWeight: "700",
   },
 });
