@@ -8,56 +8,83 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   StatusBar,
+  Alert,
 } from 'react-native';
 import { colors } from '../../shared/theme/colors';
 import { usePortfolio, useStocks, useBuySell } from '../hooks/useStock';
+import { useMarketData } from '../hooks/useMarketData';
+import { useExecuteTrade } from '../hooks/useTrading';
 import { Stock } from '../../domain/entities/stock.entity';
 import { PortfolioCard } from '../components/PortfolioCard';
 import { StockListItem } from '../components/StockListItem';
-import { BuySellModal } from '../components/BuySellModal';
+import { TradeModal } from '../components/TradeModal';
 
 export const HomeScreen: React.FC<{ onNavigateToPortfolio?: () => void }> = ({ onNavigateToPortfolio }) => {
   const { portfolio, loading: portfolioLoading, error: portfolioError } = usePortfolio();
   const { stocks, loading: stocksLoading, error: stocksError } = useStocks();
   const { buyStock, sellStock } = useBuySell();
+  const { marketData, connected } = useMarketData();
+  const { executeTrade, loading: tradeLoading } = useExecuteTrade();
 
   const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
-  const [transactionType, setTransactionType] = useState<'buy' | 'sell'>('buy');
-  const [showModal, setShowModal] = useState(false);
+  const [tradeType, setTradeType] = useState<'BUY' | 'SELL'>('BUY');
+  const [showTradeModal, setShowTradeModal] = useState(false);
+
+  const handlePricePress = (stock: Stock) => {
+    setSelectedStock(stock);
+    setTradeType('BUY');
+    setShowTradeModal(true);
+  };
 
   const handleBuyPress = (stock: Stock) => {
     setSelectedStock(stock);
-    setTransactionType('buy');
-    setShowModal(true);
+    setTradeType('BUY');
+    setShowTradeModal(true);
   };
 
   const handleSellPress = (stock: Stock) => {
     setSelectedStock(stock);
-    setTransactionType('sell');
-    setShowModal(true);
+    setTradeType('SELL');
+    setShowTradeModal(true);
   };
 
-  const handleStockItemPress = (stock: Stock) => {
-    setSelectedStock(stock);
-    setTransactionType('buy');
-    setShowModal(true);
-  };
-
-  const handleTransactionConfirm = async (quantity: number): Promise<boolean> => {
-    if (!selectedStock) return false;
+  const handleExecuteTrade = async (quantity: number, price: number) => {
+    if (!selectedStock) return;
 
     try {
-      if (transactionType === 'buy') {
-        const result = await buyStock(selectedStock.id, quantity);
-        return result.success;
+      const result = await executeTrade({
+        symbol: selectedStock.symbol,
+        quantity,
+        price,
+        type: tradeType,
+      });
+
+      if (result.success) {
+        Alert.alert(
+          '✅ Success',
+          `${tradeType} order executed successfully!\nTransaction ID: ${result.transaction_id}`,
+          [{ text: 'OK' }]
+        );
       } else {
-        const result = await sellStock(selectedStock.id, quantity);
-        return result.success;
+        Alert.alert('❌ Error', result.message, [{ text: 'OK' }]);
       }
-    } catch {
-      return false;
+    } catch (err) {
+      Alert.alert('❌ Error', err instanceof Error ? err.message : 'Trade failed', [{ text: 'OK' }]);
     }
   };
+
+  // Merge live WebSocket data with static stock data
+  const liveStocks = stocks.map(stock => {
+    const liveUpdate = marketData.find(m => m.symbol === stock.symbol);
+    if (liveUpdate) {
+      return {
+        ...stock,
+        price: liveUpdate.currentPrice,
+        changePercent: liveUpdate.percentageChange,
+      };
+    }
+    return stock;
+  });
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -97,7 +124,10 @@ export const HomeScreen: React.FC<{ onNavigateToPortfolio?: () => void }> = ({ o
             style={[styles.actionButton, styles.buyButton]}
             onPress={() => {
               if (stocks.length > 0) {
-                handleBuyPress(stocks[0]);
+                const stock = stocks[0];
+                setSelectedStock(stock);
+                setTradeType('BUY');
+                setShowTradeModal(true);
               }
             }}
           >
@@ -108,7 +138,10 @@ export const HomeScreen: React.FC<{ onNavigateToPortfolio?: () => void }> = ({ o
             style={[styles.actionButton, styles.sellButton]}
             onPress={() => {
               if (stocks.length > 0) {
-                handleSellPress(stocks[0]);
+                const stock = stocks[0];
+                setSelectedStock(stock);
+                setTradeType('SELL');
+                setShowTradeModal(true);
               }
             }}
           >
@@ -120,6 +153,7 @@ export const HomeScreen: React.FC<{ onNavigateToPortfolio?: () => void }> = ({ o
         <View style={styles.pricesSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>✓ Live Prices</Text>
+            <Text style={{ color: connected ? '#00D084' : '#FF6B6B', fontSize: 12, fontWeight: 'bold' }}>{connected ? '🟢 Live' : '🔴 Reconnecting...'}</Text>
           </View>
 
           {stocksLoading ? (
@@ -136,7 +170,7 @@ export const HomeScreen: React.FC<{ onNavigateToPortfolio?: () => void }> = ({ o
             </View>
           ) : (
             <View style={styles.stockListContainer}>
-              {stocks.map(stock => (
+              {liveStocks.map(stock => (
                 <StockListItem
                   key={stock.id}
                   symbol={stock.symbol}
@@ -144,7 +178,7 @@ export const HomeScreen: React.FC<{ onNavigateToPortfolio?: () => void }> = ({ o
                   price={stock.price}
                   changePercent={stock.changePercent}
                   change={stock.change}
-                  onPress={() => handleStockItemPress(stock)}
+                  onPress={() => handlePricePress(stock)}
                 />
               ))}
             </View>
@@ -152,18 +186,19 @@ export const HomeScreen: React.FC<{ onNavigateToPortfolio?: () => void }> = ({ o
         </View>
       </ScrollView>
 
-      {/* Buy/Sell Modal */}
+      {/* Trade Modal */}
       {selectedStock && (
-        <BuySellModal
-          visible={showModal}
-          stockSymbol={selectedStock.symbol}
-          stockPrice={selectedStock.price}
-          type={transactionType}
+        <TradeModal
+          visible={showTradeModal}
+          symbol={selectedStock.symbol}
+          currentPrice={selectedStock.price}
+          type={tradeType}
+          loading={tradeLoading}
           onClose={() => {
-            setShowModal(false);
+            setShowTradeModal(false);
             setSelectedStock(null);
           }}
-          onConfirm={handleTransactionConfirm}
+          onTrade={handleExecuteTrade}
         />
       )}
     </SafeAreaView>

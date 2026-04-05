@@ -80,3 +80,60 @@ export const useWallet = (): UseWalletResult => {
     refetch: fetchWallet,
   };
 };
+
+interface TradeResult {
+  success: boolean;
+  message: string;
+  transaction_id?: string;
+}
+
+interface TradingParams {
+  symbol: string;
+  quantity: number;
+  price: number;
+  type: 'BUY' | 'SELL';
+}
+
+export const useExecuteTrade = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const executeTrade = useCallback(async (params: TradingParams): Promise<TradeResult> => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      console.log('Executing trade:', params);
+      
+      const data = await tradingRemoteDatasource.createTransaction({
+        type: params.type === 'BUY' ? 'buy' : 'sell',
+        symbol: params.symbol,
+        quantity: params.quantity,
+        price: params.price,
+      });
+
+      console.log('Trade executed:', data);
+      return {
+        success: true,
+        message: `${params.type} order executed successfully`,
+        transaction_id: data.transaction_id,
+      };
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Trade failed';
+      setError(errorMessage);
+      console.error('Trade error:', errorMessage);
+      return {
+        success: false,
+        message: errorMessage,
+      };
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  return {
+    executeTrade,
+    loading,
+    error,
+  };
+};
