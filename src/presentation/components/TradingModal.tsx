@@ -17,8 +17,11 @@ import { useExecuteTrade } from '../hooks/useTrading';
 interface MarketData {
   symbol: string;
   currentPrice: number;
-  volume: number;
   percentageChange: number;
+  totalQuantity: number;
+  availableQuantity: number;
+  heldQuantity: number;
+  timestamp: string;
 }
 
 interface TradingModalProps {
@@ -43,6 +46,7 @@ export const TradingModal: React.FC<TradingModalProps> = ({
   const [selectedSymbol, setSelectedSymbol] = useState(initialSymbol);
   const [quantity, setQuantity] = useState('');
   const [showStockPicker, setShowStockPicker] = useState(false);
+  const [showCompanySelector, setShowCompanySelector] = useState(false);
   const { executeTrade, loading, error } = useExecuteTrade();
   const [tradeError, setTradeError] = useState<string | null>(null);
 
@@ -60,6 +64,7 @@ export const TradingModal: React.FC<TradingModalProps> = ({
       setQuantity('');
       setTradeError(null);
       setShowStockPicker(false);
+      setShowCompanySelector(false);
       setSelectedSymbol(initialSymbol);
     }
   }, [visible, initialSymbol]);
@@ -148,64 +153,81 @@ export const TradingModal: React.FC<TradingModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          {/* Stock Picker Dropdown */}
-          {showStockPicker && (
-            <View style={styles.pickerContainer}>
-              <FlatList
-                data={marketData}
-                keyExtractor={(item) => item.symbol}
-                scrollEnabled
-                style={styles.stockList}
-                renderItem={({ item }) => (
-                  <TouchableOpacity
-                    style={[
-                      styles.stockOption,
-                      selectedSymbol === item.symbol && styles.selectedStock,
-                    ]}
-                    onPress={() => {
-                      setSelectedSymbol(item.symbol);
-                      setShowStockPicker(false);
-                      setTradeError(null);
-                    }}
-                  >
-                    <View>
-                      <Text style={styles.stockOptionSymbol}>{item.symbol}</Text>
-                      <Text style={styles.stockOptionPrice}>
-                        ₹{item.currentPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                      </Text>
-                    </View>
-                    <Text
-                      style={[
-                        styles.stockOptionChange,
-                        { color: item.percentageChange >= 0 ? '#34D399' : '#EF4444' },
-                      ]}
-                    >
-                      {item.percentageChange >= 0 ? '+' : ''}{item.percentageChange.toFixed(2)}%
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              />
-            </View>
-          )}
+          {/* Company Selector View */}
+          {showCompanySelector ? (
+            <>
+              {/* Company Selection Header */}
+              <View style={styles.selectorHeader}>
+                <Text style={styles.selectorTitle}>Select a Company</Text>
+                <TouchableOpacity onPress={() => setShowCompanySelector(false)}>
+                  <Text style={styles.selectorClose}>✕</Text>
+                </TouchableOpacity>
+              </View>
 
-          <ScrollView style={styles.content}>
-            {/* Stock Selector */}
-            <View style={styles.stockSelectorSection}>
-              <Text style={styles.label}>Select Stock</Text>
-              <TouchableOpacity
-                style={styles.stockSelectorButton}
-                onPress={() => setShowStockPicker(!showStockPicker)}
-              >
-                <View style={styles.stockSelectorContent}>
-                  <View>
-                    <Text style={styles.selectedStockSymbol}>{selectedSymbol}</Text>
-                    <Text style={styles.selectedStockPrice}>
-                      ₹{currentPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
-                    </Text>
-                  </View>
-                  <Text style={styles.dropdownArrow}>{showStockPicker ? '▲' : '▼'}</Text>
+              {/* Stock Picker Dropdown for Company Selection */}
+              <View style={styles.pickerContainer}>
+                <FlatList
+                  data={marketData}
+                  keyExtractor={(item) => item.symbol}
+                  scrollEnabled
+                  style={styles.stockList}
+                  renderItem={({ item }) => (
+                    <TouchableOpacity
+                      style={[
+                        styles.stockOption,
+                        selectedSymbol === item.symbol && styles.selectedStock,
+                      ]}
+                      onPress={() => {
+                        setSelectedSymbol(item.symbol);
+                        setShowCompanySelector(false);
+                        setTradeError(null);
+                      }}
+                    >
+                      <View style={styles.stockOptionLeft}>
+                        <Text style={styles.stockOptionSymbol}>{item.symbol}</Text>
+                        <View style={styles.stockOptionDetails}>
+                          <Text style={styles.stockOptionPrice}>
+                            ₹{item.currentPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                          </Text>
+                          <Text style={styles.stockOptionQuantity}>
+                            📊 {item.availableQuantity.toLocaleString('en-IN')} shares
+                          </Text>
+                        </View>
+                      </View>
+                      <Text
+                        style={[
+                          styles.stockOptionChange,
+                          { color: item.percentageChange >= 0 ? '#34D399' : '#EF4444' },
+                        ]}
+                      >
+                        {item.percentageChange >= 0 ? '+' : ''}{item.percentageChange.toFixed(2)}%
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                />
+              </View>
+            </>
+          ) : (
+            <>
+              {/* Normal Trading View */}
+              <ScrollView style={styles.content}>
+            {/* Stock Selector Section - shows selected company */}
+            <View style={styles.companyInfoSection}>
+              <View style={styles.companyCard}>
+                <View style={styles.companyCardLeft}>
+                  <Text style={styles.companyLabel}>Trading</Text>
+                  <Text style={styles.companySymbol}>{selectedSymbol}</Text>
+                  <Text style={styles.companyPrice}>
+                    ₹{currentPrice.toLocaleString('en-IN', { maximumFractionDigits: 2 })}
+                  </Text>
                 </View>
-              </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.changeCompanyButton}
+                  onPress={() => setShowCompanySelector(true)}
+                >
+                  <Text style={styles.changeCompanyText}>Change</Text>
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* Real-time Price Display */}
@@ -216,6 +238,24 @@ export const TradingModal: React.FC<TradingModalProps> = ({
               </Text>
               <Text style={styles.priceNote}>🔄 Real-time from market data</Text>
             </View>
+
+            {/* Available Quantity Display */}
+            {marketData.find(m => m.symbol === selectedSymbol) && (
+              <View style={styles.quantityInfoSection}>
+                <View style={styles.quantityRow}>
+                  <Text style={styles.quantityLabel}>Available:</Text>
+                  <Text style={styles.quantityValue}>
+                    {marketData.find(m => m.symbol === selectedSymbol)?.availableQuantity.toLocaleString('en-IN') || '0'} shares
+                  </Text>
+                </View>
+                <View style={styles.quantityRow}>
+                  <Text style={styles.quantityLabel}>Total Listed:</Text>
+                  <Text style={styles.quantityValue}>
+                    {marketData.find(m => m.symbol === selectedSymbol)?.totalQuantity.toLocaleString('en-IN') || '0'} shares
+                  </Text>
+                </View>
+              </View>
+            )}
 
             {/* Quantity Input */}
             <View style={styles.inputSection}>
@@ -280,7 +320,9 @@ export const TradingModal: React.FC<TradingModalProps> = ({
                 </Text>
               </View>
             )}
-          </ScrollView>
+              </ScrollView>
+            </>
+          )}
 
           {/* Action Buttons */}
           <View style={styles.buttonContainer}>
@@ -365,7 +407,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderBottomWidth: 1,
     borderBottomColor: '#1F2437',
   },
@@ -374,20 +416,36 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: '#34D399',
   },
+  stockOptionLeft: {
+    flex: 1,
+    marginRight: 12,
+  },
   stockOptionSymbol: {
     fontSize: 14,
     fontWeight: '700',
     color: '#FFFFFF',
-    marginBottom: 4,
+    marginBottom: 8,
+  },
+  stockOptionDetails: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   stockOptionPrice: {
     fontSize: 12,
     fontWeight: '600',
-    color: '#B0B8D4',
+    color: '#34D399',
+  },
+  stockOptionQuantity: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: '#7A8393',
   },
   stockOptionChange: {
     fontSize: 12,
     fontWeight: '700',
+    minWidth: 50,
+    textAlign: 'right',
   },
   stockSelectorSection: {
     marginBottom: 16,
@@ -426,6 +484,30 @@ const styles = StyleSheet.create({
     color: '#7A8393',
     marginTop: 8,
     fontStyle: 'italic',
+  },
+  quantityInfoSection: {
+    marginBottom: 20,
+    backgroundColor: '#0F172A',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#2D3556',
+  },
+  quantityRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  quantityLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#B0B8D4',
+  },
+  quantityValue: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#34D399',
   },
   priceSection: {
     marginBottom: 20,
@@ -566,4 +648,73 @@ const styles = StyleSheet.create({
   disabledButton: {
     opacity: 0.5,
   },
+  // New styles for company selector view
+  selectorHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#2D3556',
+    backgroundColor: '#0F172A',
+  },
+  selectorTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  selectorClose: {
+    fontSize: 24,
+    color: '#B0B8D4',
+  },
+  // Company info section for normal trading view
+  companyInfoSection: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    marginBottom: 16,
+  },
+  companyCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#0F172A',
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#2D3556',
+  },
+  companyCardLeft: {
+    flex: 1,
+  },
+  companyLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#7A8393',
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  companySymbol: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    marginBottom: 6,
+  },
+  companyPrice: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#34D399',
+  },
+  changeCompanyButton: {
+    backgroundColor: '#34D399',
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  changeCompanyText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1A1F3A',
+  },
 });
+

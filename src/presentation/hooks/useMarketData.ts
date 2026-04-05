@@ -4,8 +4,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export interface MarketData {
   symbol: string;
   currentPrice: number;
-  volume: number;
   percentageChange: number;
+  totalQuantity: number;
+  availableQuantity: number;
+  heldQuantity: number;
+  timestamp: string;
 }
 
 interface UseMarketDataResult {
@@ -74,8 +77,32 @@ export const useMarketData = (): UseMarketDataResult => {
 
           // Handle array of market data
           if (Array.isArray(data)) {
+            console.log('\n📊 WebSocket Message Received - Array Format');
+            console.log(`   📦 Total Stocks: ${data.length}`);
+            
+            // Log each stock's available quantity
+            data.forEach((stock: any, index: number) => {
+              console.log(`   ${index + 1}. ${stock.symbol}`);
+              console.log(`      💰 Price: ₹${stock.currentPrice}`);
+              console.log(`      📈 Change: ${stock.percentageChange}%`);
+              console.log(`      📊 Available: ${stock.availableQuantity?.toLocaleString() || 'N/A'} shares`);
+              console.log(`      📦 Total: ${stock.totalQuantity?.toLocaleString() || 'N/A'} shares`);
+              console.log(`      🎯 Held: ${stock.heldQuantity?.toLocaleString() || 'N/A'} shares`);
+              console.log(`      ✓ Full Object:`, JSON.stringify(stock));
+            });
+            
+            console.log('\n✅ Setting market data in state with', data.length, 'stocks');
+            console.log('First stock:', JSON.stringify(data[0]));
+            
             setMarketData(data);
           } else if (data && typeof data === 'object') {
+            console.log('\n📊 WebSocket Message Received - Single Stock');
+            console.log(`   Symbol: ${data.symbol}`);
+            console.log(`   💰 Price: ₹${data.currentPrice}`);
+            console.log(`   📊 Available: ${data.availableQuantity?.toLocaleString() || 'N/A'} shares`);
+            console.log(`   📦 Total: ${data.totalQuantity?.toLocaleString() || 'N/A'} shares`);
+            console.log(`   Full Object:`, JSON.stringify(data));
+            
             setMarketData([data]);
           }
           

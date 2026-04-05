@@ -5,6 +5,8 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
+// @ts-ignore
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { colors } from '../../shared/theme/colors';
 
 interface StockListItemProps {
@@ -13,6 +15,7 @@ interface StockListItemProps {
   price: number;
   changePercent: number;
   change: number;
+  availableQuantity?: number;
   onPress?: () => void;
 }
 
@@ -22,6 +25,7 @@ export const StockListItem: React.FC<StockListItemProps> = ({
   price,
   changePercent,
   change,
+  availableQuantity,
   onPress,
 }) => {
   const isPositive = changePercent >= 0;
@@ -33,6 +37,17 @@ export const StockListItem: React.FC<StockListItemProps> = ({
         <View>
           <Text style={styles.symbol}>{symbol}</Text>
           <Text style={styles.name}>{name}</Text>
+          {availableQuantity !== undefined && (
+            <View style={styles.qtyBadge}>
+              <MaterialCommunityIcons
+                name="package-multiple"
+                size={14}
+                color="#34D399"
+                style={styles.qtyIcon}
+              />
+              <Text style={styles.qtyText}>{availableQuantity.toLocaleString('en-IN')} avail.</Text>
+            </View>
+          )}
         </View>
       </View>
 
@@ -73,6 +88,27 @@ const styles = StyleSheet.create({
   name: {
     color: colors.textMuted,
     fontSize: 12,
+  },
+  qtyBadge: {
+    marginTop: 6,
+    backgroundColor: 'rgba(52, 211, 153, 0.1)',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: 'rgba(52, 211, 153, 0.2)',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  qtyIcon: {
+    marginRight: 2,
+  },
+  qtyText: {
+    fontSize: 10,
+    color: '#34D399',
+    fontWeight: '600',
   },
   price: {
     color: colors.textDark,

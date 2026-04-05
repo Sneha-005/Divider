@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { tradingRemoteDatasource } from '../../data/datasources/remote/trading.remote.datasource';
 
 interface UseTransactionsResult {
@@ -61,17 +61,30 @@ export const useWallet = (): UseWalletResult => {
       setLoading(true);
       setError(null);
 
-      const data = await tradingRemoteDatasource.getWallet();
-      setWallet(data);
-      console.log('Wallet data set in state:', data);
+      // Datasource already handles mapping and response unwrapping
+      const walletData = await tradingRemoteDatasource.getWallet();
+      
+      setWallet(walletData);
+      console.log('✅ Wallet hook - data set:', {
+        total_balance: walletData.total_balance,
+        available_cash: walletData.available_cash,
+        invested_amount: walletData.invested_amount,
+        holdings: walletData.holdings?.length || 0
+      });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch wallet';
       setError(errorMessage);
-      console.error('useWallet error:', errorMessage);
+      console.error('❌ useWallet hook error:', errorMessage);
     } finally {
       setLoading(false);
     }
   }, []);
+
+  // Fetch wallet data on component mount
+  useEffect(() => {
+    console.log('📱 useWallet hook initialized, fetching wallet data...');
+    fetchWallet();
+  }, [fetchWallet]);
 
   return {
     wallet,

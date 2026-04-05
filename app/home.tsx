@@ -42,6 +42,18 @@ export default function HomeScreen() {
   }, []);
 
   React.useEffect(() => {
+    if (marketData.length > 0) {
+      console.log('\n💹 Market Data Updated:');
+      console.log(`   📊 Total Stocks: ${marketData.length}`);
+      console.log('   Available Quantities:');
+      marketData.forEach((stock) => {
+        console.log(`      • ${stock.symbol}: ${stock.availableQuantity?.toLocaleString('en-IN') || 'N/A'} shares | Price: ₹${stock.currentPrice}`);
+      });
+      console.log('');
+    }
+  }, [marketData]);
+
+  React.useEffect(() => {
     console.log('\n📊 HOME SCREEN STATE UPDATE:');
     console.log('   Connected:', connected);
     console.log('   Loading:', loading);
@@ -56,6 +68,25 @@ export default function HomeScreen() {
 
   const renderMarketItem = ({ item }: { item: any }) => {
     const isPositive = item.percentageChange >= 0;
+    
+    // Defensive check for available quantity
+    const availableQty = item.availableQuantity !== undefined && item.availableQuantity !== null 
+      ? item.availableQuantity 
+      : 0;
+    
+    // Log each item being rendered with detailed info
+    console.log(`\n🎨 Rendering card for ${item.symbol}`);
+    console.log(`   ✓ Full Item:`, JSON.stringify(item, null, 2));
+    console.log(`   ✓ availableQuantity from item:`, item.availableQuantity);
+    console.log(`   ✓ Calculated availableQty:`, availableQty);
+    console.log(`   ✓ Type: ${typeof availableQty}, Value: ${availableQty}`);
+    console.log(`   ✓ Available Formatted: ${availableQty > 0 ? availableQty.toLocaleString('en-IN') : 'N/A'}`);
+    console.log(`   ✓ Price: ${item.currentPrice}`);
+    console.log(`   ✓ Change: ${item.percentageChange}%`);
+    
+    if (!availableQty || availableQty === 0) {
+      console.warn(`⚠️  WARNING: No available quantity for ${item.symbol}`);
+    }
     
     const handleBuy = () => {
       setSelectedStock({
@@ -91,9 +122,16 @@ export default function HomeScreen() {
         activeOpacity={0.7}
       >
         <View style={styles.cardHeader}>
-          <View>
+          <View style={styles.symbolSection}>
             <Text style={styles.symbol}>{item.symbol}</Text>
-            <Text style={styles.volume}>Vol: {(item.volume / 1000).toFixed(0)}K</Text>
+            <View style={styles.quantityBadge}>
+              <Text style={styles.quantityLabel}>📊</Text>
+              <Text style={styles.quantityText}>
+                {availableQty && availableQty > 0 
+                  ? `${availableQty.toLocaleString('en-IN')} shares` 
+                  : 'N/A'}
+              </Text>
+            </View>
           </View>
           <View style={styles.priceContainer}>
             <Text style={styles.price}>
@@ -174,7 +212,13 @@ export default function HomeScreen() {
       ) : (
         <FlatList
           data={marketData}
-          renderItem={renderMarketItem}
+          renderItem={(props) => {
+            console.log(`\n🎴 FlatList rendering item:`, props.item.symbol);
+            console.log(`   Full item data:`, JSON.stringify(props.item));
+            console.log(`   availableQuantity:`, props.item.availableQuantity);
+            console.log(`   Type:`, typeof props.item.availableQuantity);
+            return renderMarketItem(props);
+          }}
           keyExtractor={(item) => item.symbol}
           contentContainerStyle={styles.listContainer}
           showsVerticalScrollIndicator={false}
@@ -332,9 +376,44 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     marginBottom: 8,
   },
+  symbolSection: {
+    flexDirection: 'column',
+  },
+  quantityBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(52, 211, 153, 0.1)',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    alignSelf: 'flex-start',
+    borderWidth: 1,
+    borderColor: '#34D399',
+    marginTop: 8,
+  },
+  quantityLabel: {
+    fontSize: 14,
+    marginRight: 6,
+  },
+  quantityText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#34D399',
+  },
+  quantitySubtext: {
+    fontSize: 9,
+    color: '#7A8393',
+    marginTop: 4,
+    fontWeight: '500',
+  },
   volume: {
     fontSize: 12,
     color: "#B0B8D4",
+    fontWeight: "500",
+  },
+  quantity: {
+    fontSize: 11,
+    color: "#7A8393",
     fontWeight: "500",
   },
   priceContainer: {

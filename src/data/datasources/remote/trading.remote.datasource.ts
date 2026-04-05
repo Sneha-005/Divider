@@ -103,18 +103,29 @@ export class TradingRemoteDatasource {
       }
 
       const data = await response.json();
-      console.log('Wallet data received:', data);
+      console.log('Wallet API response:', data);
+      
+      // Handle response wrapper - API wraps data in { data, success }
+      const walletData = data.data || data;
+      
+      console.log('✅ Wallet data extracted:', {
+        user_id: walletData.user_id,
+        total_balance: walletData.total_balance,
+        available_cash: walletData.available_cash,
+        invested_amount: walletData.invested_amount,
+        positions_count: Object.keys(walletData.positions || {}).length
+      });
       
       // Map API response to standardized format
-      // API returns: positions, but we expect: holdings
+      // API returns: positions object, we convert to holdings array
       const mappedData = {
-        user_id: data.user_id,
-        total_balance: data.total_balance,
-        available_cash: data.available_cash,
-        invested_amount: data.invested_amount || 0,
-        last_updated: data.last_updated,
-        // Convert positions to holdings format with all details
-        holdings: data.positions ? Object.values(data.positions).map((position: any) => ({
+        user_id: walletData.user_id,
+        total_balance: walletData.total_balance || 0,
+        available_cash: walletData.available_cash || 0,
+        invested_amount: walletData.invested_amount || 0,
+        last_updated: walletData.last_updated,
+        // Convert positions object to holdings array with all details
+        holdings: walletData.positions ? Object.values(walletData.positions).map((position: any) => ({
           symbol: position.symbol,
           quantity: position.quantity,
           current_price: position.current_price,
@@ -125,8 +136,13 @@ export class TradingRemoteDatasource {
         })) : [],
       };
       
-      console.log('Mapped Holdings count:', mappedData.holdings.length);
-      console.log('Holdings:', mappedData.holdings);
+      console.log('✅ Mapped wallet data:', {
+        total_balance: mappedData.total_balance,
+        available_cash: mappedData.available_cash,
+        invested_amount: mappedData.invested_amount,
+        holdings_count: mappedData.holdings.length
+      });
+      
       return mappedData;
     } catch (error) {
       console.error('getWallet error:', error);
