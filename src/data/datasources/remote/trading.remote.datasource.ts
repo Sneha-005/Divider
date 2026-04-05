@@ -285,6 +285,53 @@ export class TradingRemoteDatasource {
       throw error;
     }
   }
+
+  /**
+   * Get dashboard home data
+   * GET /dashboard/home
+   */
+  async getDashboardHome(): Promise<any> {
+    try {
+      const authHeader = await this.getAuthHeader();
+
+      const response = await this.fetchWithTimeout(
+        `${API_BASE_URL}/dashboard/home`,
+        {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...authHeader,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        let errorData: ApiErrorResponse = {};
+        try {
+          errorData = await response.json();
+        } catch (parseError) {
+          errorData = { message: `HTTP ${response.status}` };
+        }
+        console.error('Dashboard API Error:', errorData);
+        throw new Error(
+          errorData.message ||
+          errorData.error ||
+          `Dashboard API error: ${response.status}`
+        );
+      }
+
+      const data = await response.json();
+      
+      // Handle response wrapper - API wraps data in { data, success }
+      const dashboardData = data.data || data;
+      
+      return dashboardData;
+    } catch (error) {
+      console.error('getDashboardHome error:', error);
+      throw error;
+    }
+  }
 }
 
 export const tradingRemoteDatasource = new TradingRemoteDatasource();

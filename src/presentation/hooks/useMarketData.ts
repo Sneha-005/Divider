@@ -30,6 +30,7 @@ export const useMarketData = (): UseMarketDataResult => {
   const maxReconnectAttempts = 5;
   const baseReconnectDelay = 1000;
   const maxReconnectDelay = 30000;
+  const logEveryNUpdates = 10;
   const mountedRef = useRef(true);
 
   const connectWebSocket = async () => {
@@ -54,11 +55,13 @@ export const useMarketData = (): UseMarketDataResult => {
 
       // Create WebSocket connection with token
       const wsUrl = `wss://divider-backend.onrender.com/ws?token=${token}`;
+      console.log('[WebSocket] Connecting...');
       
       const ws = new WebSocket(wsUrl);
       let messageCount = 0;
 
       ws.onopen = () => {
+        console.log('[WebSocket] Connected');
         if (mountedRef.current) {
           setConnected(true);
           setError(null);
@@ -70,6 +73,8 @@ export const useMarketData = (): UseMarketDataResult => {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          messageCount += 1;
+          const shouldLogUpdate = messageCount === 1 || messageCount % logEveryNUpdates === 0;
           
           if (!mountedRef.current) {
             return;
@@ -77,32 +82,31 @@ export const useMarketData = (): UseMarketDataResult => {
 
           // Handle array of market data
           if (Array.isArray(data)) {
-            console.log('\n📊 WebSocket Message Received - Array Format');
-            console.log(`   📦 Total Stocks: ${data.length}`);
-            
-            // Log each stock's available quantity
-            data.forEach((stock: any, index: number) => {
-              console.log(`   ${index + 1}. ${stock.symbol}`);
-              console.log(`      💰 Price: ₹${stock.currentPrice}`);
-              console.log(`      📈 Change: ${stock.percentageChange}%`);
-              console.log(`      📊 Available: ${stock.availableQuantity?.toLocaleString() || 'N/A'} shares`);
-              console.log(`      📦 Total: ${stock.totalQuantity?.toLocaleString() || 'N/A'} shares`);
-              console.log(`      🎯 Held: ${stock.heldQuantity?.toLocaleString() || 'N/A'} shares`);
-              console.log(`      ✓ Full Object:`, JSON.stringify(stock));
-            });
-            
-            console.log('\n✅ Setting market data in state with', data.length, 'stocks');
-            console.log('First stock:', JSON.stringify(data[0]));
-            
+            if (shouldLogUpdate) {
+              const availableByCompany = data
+                .map((stock: any) => {
+                  const qty =
+                    stock.availableQuantity === undefined || stock.availableQuantity === null
+                      ? 'N/A'
+                      : Number(stock.availableQuantity).toLocaleString('en-IN');
+                  return `${stock.symbol}: ${qty}`;
+                })
+                .join(' | ');
+              console.log(
+                `[WebSocket] Update #${messageCount}: ${data.length} symbols | Available -> ${availableByCompany}`
+              );
+            }
             setMarketData(data);
           } else if (data && typeof data === 'object') {
-            console.log('\n📊 WebSocket Message Received - Single Stock');
-            console.log(`   Symbol: ${data.symbol}`);
-            console.log(`   💰 Price: ₹${data.currentPrice}`);
-            console.log(`   📊 Available: ${data.availableQuantity?.toLocaleString() || 'N/A'} shares`);
-            console.log(`   📦 Total: ${data.totalQuantity?.toLocaleString() || 'N/A'} shares`);
-            console.log(`   Full Object:`, JSON.stringify(data));
-            
+            if (shouldLogUpdate) {
+              const qty =
+                data.availableQuantity === undefined || data.availableQuantity === null
+                  ? 'N/A'
+                  : Number(data.availableQuantity).toLocaleString('en-IN');
+              console.log(
+                `[WebSocket] Update #${messageCount}: ${data.symbol} available=${qty} price=${data.currentPrice} change=${data.percentageChange}`
+              );
+            }
             setMarketData([data]);
           }
           
@@ -116,6 +120,8 @@ export const useMarketData = (): UseMarketDataResult => {
       };
 
       ws.onerror = (event: Event | string) => {
+        const errorType = typeof event === 'string' ? event : event?.type || 'unknown';
+        console.error(`[WebSocket] Connection error (${errorType})`);
         if (mountedRef.current) {
           setError('WebSocket connection error');
           setConnected(false);
@@ -123,6 +129,9 @@ export const useMarketData = (): UseMarketDataResult => {
       };
 
       ws.onclose = (event: any) => {
+        console.log(
+          `[WebSocket] Closed: code=${event?.code ?? 'N/A'} reason=${event?.reason || 'N/A'}`
+        );
         if (mountedRef.current) {
           setConnected(false);
         }
@@ -135,6 +144,9 @@ export const useMarketData = (): UseMarketDataResult => {
           );
           
           reconnectAttemptsRef.current += 1;
+          console.log(
+            `[WebSocket] Reconnecting in ${delay}ms (attempt ${reconnectAttemptsRef.current}/${maxReconnectAttempts})`
+          );
           
           reconnectTimeoutRef.current = setTimeout(() => {
             if (mountedRef.current) {

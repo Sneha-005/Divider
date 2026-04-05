@@ -1,8 +1,3 @@
-/**
- * Register Use Case
- * Business logic for user registration
- */
-
 import { RegisterData, User } from "@domain/entities/user.entity";
 import { IAuthRepository } from "@domain/repositories/auth.repository";
 

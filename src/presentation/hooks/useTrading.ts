@@ -250,3 +250,45 @@ export const useExecuteTrade = () => {
     error,
   };
 };
+
+interface UseDashboardResult {
+  dashboard: any;
+  loading: boolean;
+  error: string | null;
+  refetch: () => Promise<void>;
+}
+
+export const useDashboard = (): UseDashboardResult => {
+  const [dashboard, setDashboard] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchDashboard = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const dashboardData = await tradingRemoteDatasource.getDashboardHome();
+      
+      setDashboard(dashboardData);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch dashboard';
+      setError(errorMessage);
+      console.error('❌ useDashboard hook error:', errorMessage);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  // Fetch dashboard data on component mount
+  useEffect(() => {
+    fetchDashboard();
+  }, [fetchDashboard]);
+
+  return {
+    dashboard,
+    loading,
+    error,
+    refetch: fetchDashboard,
+  };
+};

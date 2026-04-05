@@ -5,8 +5,8 @@ import {
   Text,
   StyleSheet,
   SafeAreaView,
-  Dimensions,
 } from 'react-native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 interface BottomTabNavigationProps {
   activeTab: 'home' | 'chart' | 'portfolio' | 'alert' | 'profile';
@@ -14,21 +14,19 @@ interface BottomTabNavigationProps {
 }
 
 const TABS = [
-  { name: 'home', icon: '🏠', label: 'Home' },
-  { name: 'chart', icon: '📊', label: 'Chart' },
-  { name: 'portfolio', icon: '💼', label: 'Portfolio' },
-  { name: 'alert', icon: '🔔', label: 'Alert' },
-  { name: 'profile', icon: '👤', label: 'Profile' },
+  { name: 'home', icon: 'home-outline', activeIcon: 'home', label: 'Home' },
+  { name: 'chart', icon: 'chart-line', activeIcon: 'chart-line-variant', label: 'Chart' },
+  { name: 'portfolio', icon: 'briefcase-variant-outline', activeIcon: 'briefcase-variant', label: 'Portfolio' },
+  { name: 'alert', icon: 'bell-outline', activeIcon: 'bell', label: 'Alert' },
+  { name: 'profile', icon: 'account-circle-outline', activeIcon: 'account-circle', label: 'Profile' },
 ] as const;
 
 export const BottomTabNavigation: React.FC<BottomTabNavigationProps> = ({
   activeTab,
   onTabPress,
 }) => {
-  const screenWidth = Dimensions.get('window').width;
-
   return (
-    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+    <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         {/* Glassmorphic Background */}
         <View style={styles.glassBackground} />
@@ -49,9 +47,12 @@ export const BottomTabNavigation: React.FC<BottomTabNavigationProps> = ({
                 {isActive && <View style={styles.activeIndicator} />}
 
                 {/* Icon */}
-                <Text style={[styles.icon, isActive && styles.activeIcon]}>
-                  {tab.icon}
-                </Text>
+                <MaterialCommunityIcons
+                  name={isActive ? tab.activeIcon : tab.icon}
+                  size={isActive ? 24 : 22}
+                  color={isActive ? '#00D084' : '#B0B8D4'}
+                  style={styles.icon}
+                />
 
                 {/* Label */}
                 <Text
@@ -133,13 +134,7 @@ const styles = StyleSheet.create({
     bottom: 6,
   },
   icon: {
-    fontSize: 24,
     marginBottom: 4,
-    color: '#B0B8D4',
-  },
-  activeIcon: {
-    fontSize: 26,
-    color: '#00D084',
   },
   label: {
     fontSize: 10,
