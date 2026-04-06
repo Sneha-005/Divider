@@ -251,6 +251,119 @@ export const useExecuteTrade = () => {
   };
 };
 
+interface CashOperationResult {
+  success: boolean;
+  message: string;
+  code?: string;
+  details?: any;
+  data?: {
+    status?: string;
+    amount?: number;
+  };
+}
+
+const parseApiError = (error: unknown, fallbackMessage: string) => {
+  if (error instanceof Error) {
+    try {
+      const parsed = JSON.parse(error.message);
+      if (parsed?.error?.message) {
+        return {
+          code: parsed.error.code || 'API_ERROR',
+          message: parsed.error.message,
+          details: parsed.error.details,
+        };
+      }
+    } catch (parseError) {
+      // Use raw message when error message is not JSON
+    }
+
+    return {
+      code: 'UNKNOWN_ERROR',
+      message: error.message || fallbackMessage,
+      details: null,
+    };
+  }
+
+  return {
+    code: 'UNKNOWN_ERROR',
+    message: fallbackMessage,
+    details: null,
+  };
+};
+
+export const useCashOperations = () => {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const runOperation = useCallback(
+    async (type: 'deposit' | 'withdraw', amount: number): Promise<CashOperationResult> => {
+      const opLabel = type === 'deposit' ? 'Deposit' : 'Withdrawal';
+
+      if (!Number.isFinite(amount) || amount <= 0) {
+        const validationMessage = `${opLabel} amount must be greater than 0`;
+        setError(validationMessage);
+        return {
+          success: false,
+          code: 'INVALID_AMOUNT',
+          message: validationMessage,
+          details: { amount },
+        };
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response =
+          type === 'deposit'
+            ? await tradingRemoteDatasource.deposit(amount)
+            : await tradingRemoteDatasource.withdraw(amount);
+
+        const statusMessage =
+          response?.status || (type === 'deposit' ? 'Deposit successful' : 'Withdrawal successful');
+
+        return {
+          success: true,
+          message: statusMessage,
+          data: {
+            status: statusMessage,
+            amount: Number(response?.amount ?? amount),
+          },
+        };
+      } catch (err) {
+        const parsed = parseApiError(err, `${opLabel} failed`);
+        setError(parsed.message);
+        return {
+          success: false,
+          code: parsed.code,
+          message: parsed.message,
+          details: parsed.details,
+        };
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  const depositCash = useCallback(
+    async (amount: number) => runOperation('deposit', amount),
+    [runOperation]
+  );
+
+  const withdrawCash = useCallback(
+    async (amount: number) => runOperation('withdraw', amount),
+    [runOperation]
+  );
+
+  return {
+    depositCash,
+    withdrawCash,
+    loading,
+    error,
+  };
+};
+
 interface UseDashboardResult {
   dashboard: any;
   loading: boolean;
