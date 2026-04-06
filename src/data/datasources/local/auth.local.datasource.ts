@@ -1,8 +1,3 @@
-/**
- * Auth Local Data Source
- * Handles local storage (token, user data)
- */
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { User } from "@domain/entities/user.entity";
 
@@ -12,9 +7,7 @@ const STORAGE_KEYS = {
 };
 
 export class AuthLocalDataSource {
-  /**
-   * Save user token
-   */
+  
   async saveToken(token: string): Promise<void> {
     try {
       await AsyncStorage.setItem(STORAGE_KEYS.USER_TOKEN, token);
@@ -24,9 +17,6 @@ export class AuthLocalDataSource {
     }
   }
 
-  /**
-   * Get saved token
-   */
   async getToken(): Promise<string | null> {
     try {
       return await AsyncStorage.getItem(STORAGE_KEYS.USER_TOKEN);
@@ -36,9 +26,6 @@ export class AuthLocalDataSource {
     }
   }
 
-  /**
-   * Remove token (logout)
-   */
   async removeToken(): Promise<void> {
     try {
       await AsyncStorage.removeItem(STORAGE_KEYS.USER_TOKEN);
@@ -48,9 +35,6 @@ export class AuthLocalDataSource {
     }
   }
 
-  /**
-   * Save user data
-   */
   async saveUserData(user: User): Promise<void> {
     try {
       await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(user));
@@ -60,9 +44,6 @@ export class AuthLocalDataSource {
     }
   }
 
-  /**
-   * Get saved user data
-   */
   async getUserData(): Promise<User | null> {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.USER_DATA);
@@ -73,9 +54,6 @@ export class AuthLocalDataSource {
     }
   }
 
-  /**
-   * Clear all auth data (logout)
-   */
   async clearAuthData(): Promise<void> {
     try {
       await AsyncStorage.multiRemove([

@@ -1,3 +1,14 @@
 {
+  "compilerOptions": {
+    "jsx": "react",
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    "paths": {
+      "@domain/*": ["src/domain/*"],
+      "@data/*": ["src/data/*"],
+      "@presentation/*": ["src/presentation/*"],
+      "@shared/*": ["src/shared/*"]
+    }
+  },
   "extends": "@react-native/typescript-config/tsconfig.json"
 }

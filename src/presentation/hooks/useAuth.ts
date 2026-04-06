@@ -34,7 +34,6 @@ export const useAuth = () => {
     try {
       const response = await authDataSource.login({ email, password });
 
-      // Store user in state (token will be returned in response)
       const userData: User = {
         id: response.id,
         email: response.email,
@@ -74,7 +73,6 @@ export const useAuth = () => {
     try {
       const response = await authDataSource.register({ email, username, password });
 
-      // Store user in state (token will be returned in response)
       const userData: User = {
         id: response.id,
         email: response.email,
@@ -114,7 +112,6 @@ export const useAuth = () => {
       setUser(null);
       setError(null);
     } catch (err) {
-      // Logout error handling
     }
   }, []);
 

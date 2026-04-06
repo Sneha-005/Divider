@@ -1,5 +1,3 @@
-// Presentation layer - Custom hooks for stocks
-
 import { useState, useCallback, useEffect } from 'react';
 import { Stock, Portfolio } from '../../domain/entities/stock.entity';
 import {
@@ -11,7 +9,6 @@ import {
 import { StockRepositoryImpl } from '../../data/repositories/stock.repository.impl';
 import { MockStockDataSource } from '../../data/datasources/stock.datasource';
 
-// Initialize repository and use cases
 const dataSource = new MockStockDataSource();
 const repository = new StockRepositoryImpl(dataSource);
 const getStocksUseCase = new GetStocksUseCase(repository);

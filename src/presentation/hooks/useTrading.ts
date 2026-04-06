@@ -23,7 +23,6 @@ export const useTransactions = (): UseTransactionsResult => {
         offset: 0,
       });
 
-      // Handle both array and object response formats
       const txArray = Array.isArray(data) ? data : data.transactions || [];
       setTransactions(txArray);
       console.log('Transactions fetched:', txArray.length);
@@ -61,7 +60,6 @@ export const useWallet = (): UseWalletResult => {
       setLoading(true);
       setError(null);
 
-      // Datasource already handles mapping and response unwrapping
       const walletData = await tradingRemoteDatasource.getWallet();
       
       setWallet(walletData);
@@ -80,7 +78,6 @@ export const useWallet = (): UseWalletResult => {
     }
   }, []);
 
-  // Fetch wallet data on component mount
   useEffect(() => {
     console.log('📱 useWallet hook initialized, fetching wallet data...');
     fetchWallet();
@@ -156,9 +153,7 @@ export const useExecuteTrade = () => {
 
       console.log('📨 API Response:', response);
 
-      // Check if response indicates error with error field
       if (response.error || response.success === false) {
-        // Error response structure: { success: false, error: { code, message, details } }
         const errorCode = response.error?.code || 'UNKNOWN_ERROR';
         const errorMessage = response.error?.message || response.message || 'Trade failed';
         const errorDetails = response.error?.details;
@@ -178,8 +173,6 @@ export const useExecuteTrade = () => {
         };
       }
 
-      // Success response structure: API returns data directly
-      // e.g. { "status": "Trade executed successfully", "total": 1604.52, "symbol": "RELIANCE-CE-2900", ... }
       if (response.status || response.total || response.symbol) {
         console.log('✅ Trade executed successfully:', response);
         
@@ -200,7 +193,6 @@ export const useExecuteTrade = () => {
         };
       }
 
-      // Fallback for unexpected response format
       console.warn('⚠️ Unexpected response format:', response);
       return {
         success: true,
@@ -216,7 +208,6 @@ export const useExecuteTrade = () => {
       if (err instanceof Error) {
         errorMessage = err.message;
         
-        // Try to parse error as JSON if it's a stringified error response
         try {
           const errorData = JSON.parse(err.message);
           if (errorData.error?.message) {
@@ -225,7 +216,6 @@ export const useExecuteTrade = () => {
             errorDetails = errorData.error.details;
           }
         } catch (parseErr) {
-          // Keep the original error message
         }
       }
 
@@ -280,7 +270,6 @@ export const useDashboard = (): UseDashboardResult => {
     }
   }, []);
 
-  // Fetch dashboard data on component mount
   useEffect(() => {
     fetchDashboard();
   }, [fetchDashboard]);
