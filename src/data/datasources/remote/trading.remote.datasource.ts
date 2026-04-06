@@ -6,7 +6,13 @@ const REQUEST_TIMEOUT = 10000;
 interface ApiErrorResponse {
   message?: string;
   error?: string;
-  details?: string;
+  details?: any;
+}
+
+interface StoredUserData {
+  id?: string;
+  email?: string;
+  username?: string;
 }
 
 /**
@@ -36,6 +42,36 @@ export class TradingRemoteDatasource {
     } catch (error) {
       console.error('Error getting auth header:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Get optional user context headers used by some backend endpoints.
+   */
+  private async getUserContextHeaders(): Promise<Record<string, string>> {
+    try {
+      const userDataRaw = await AsyncStorage.getItem('user_data');
+      if (!userDataRaw) {
+        return {};
+      }
+
+      const userData: StoredUserData = JSON.parse(userDataRaw);
+      const headers: Record<string, string> = {};
+
+      if (userData.id) {
+        headers['X-User-ID'] = userData.id;
+      }
+      if (userData.email) {
+        headers['X-Email'] = userData.email;
+      }
+      if (userData.username) {
+        headers['X-Username'] = userData.username;
+      }
+
+      return headers;
+    } catch (error) {
+      // If user context is not available, fallback to token-only auth.
+      return {};
     }
   }
 
@@ -284,6 +320,97 @@ export class TradingRemoteDatasource {
       console.error('createTransaction error:', error);
       throw error;
     }
+  }
+
+  /**
+   * Perform cash operation against wallet endpoints (deposit/withdraw).
+   */
+  private async performCashOperation(
+    endpoint: 'deposit' | 'withdraw',
+    amount: number
+  ): Promise<any> {
+    try {
+      const authHeader = await this.getAuthHeader();
+      const userContextHeaders = await this.getUserContextHeaders();
+
+      const response = await this.fetchWithTimeout(
+        `${API_BASE_URL}/trading/${endpoint}`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            ...authHeader,
+            ...userContextHeaders,
+          },
+          body: JSON.stringify({ amount }),
+        }
+      );
+
+      let data: any = null;
+      try {
+        data = await response.json();
+      } catch (parseError) {
+        data = {
+          success: false,
+          error: {
+            code: 'INVALID_RESPONSE',
+            message: 'Invalid JSON response from server',
+            details: {
+              status: response.status,
+            },
+          },
+        };
+      }
+
+      if (!response.ok || data?.success === false) {
+        const errorPayload = data?.error
+          ? data
+          : {
+              success: false,
+              error: {
+                code: 'API_ERROR',
+                message: data?.message || `${endpoint} API error: ${response.status}`,
+                details: data?.details || { status: response.status },
+              },
+            };
+
+        throw new Error(JSON.stringify(errorPayload));
+      }
+
+      return data?.data || data;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+
+      throw new Error(
+        JSON.stringify({
+          success: false,
+          error: {
+            code: 'UNKNOWN_ERROR',
+            message: `${endpoint} failed`,
+            details: error,
+          },
+        })
+      );
+    }
+  }
+
+  /**
+   * Deposit cash
+   * POST /trading/deposit
+   */
+  async deposit(amount: number): Promise<any> {
+    return this.performCashOperation('deposit', amount);
+  }
+
+  /**
+   * Withdraw cash
+   * POST /trading/withdraw
+   */
+  async withdraw(amount: number): Promise<any> {
+    return this.performCashOperation('withdraw', amount);
   }
 
   /**

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   StatusBar,
   StyleSheet,
@@ -29,6 +29,17 @@ function App(): React.JSX.Element {
   const [userName, setUserName] = useState<string | undefined>(undefined);
   const [authScreen, setAuthScreen] = useState<AuthScreen>('login');
 
+  const enforceTokenValidity = useCallback(async () => {
+    const token = await localDataSource.getToken();
+
+    if (!token) {
+      setUserName(undefined);
+      setIsAuthenticated(false);
+      setCurrentTab('home');
+      setAuthScreen('login');
+    }
+  }, []);
+
   useEffect(() => {
     const bootstrapAsync = async () => {
       try {
@@ -48,6 +59,20 @@ function App(): React.JSX.Element {
     };
     bootstrapAsync();
   }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    // Check immediately and then periodically to ensure expired tokens force re-login.
+    enforceTokenValidity();
+    const intervalId = setInterval(enforceTokenValidity, 60 * 1000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [isAuthenticated, enforceTokenValidity]);
 
   const handleLoginSuccess = (email?: string) => {
     setUserName(email?.split('@')[0]);
