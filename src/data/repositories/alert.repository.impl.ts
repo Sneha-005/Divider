@@ -52,4 +52,38 @@ export class AlertRepositoryImpl implements IAlertRepository {
       throw error;
     }
   }
+
+  async deleteAlert(alertId: string): Promise<void> {
+    try {
+      await this.remoteDataSource.deleteAlert(alertId);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async updateAlert(
+    alertId: string,
+    symbol: string,
+    price: number,
+    condition: "ABOVE" | "BELOW"
+  ): Promise<Alert> {
+    try {
+      const response = await this.remoteDataSource.updateAlert(
+        alertId,
+        symbol,
+        price,
+        condition
+      );
+      return Alert.create({
+        alert_id: response.alert_id,
+        symbol: response.symbol,
+        threshold_price: response.threshold_price,
+        condition: response.condition,
+        is_active: response.is_active,
+        created_at: response.created_at,
+      });
+    } catch (error) {
+      throw error;
+    }
+  }
 }

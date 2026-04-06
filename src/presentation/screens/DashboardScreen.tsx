@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { colors } from '../../shared/theme/colors';
 import { Stock } from '../../domain/entities/Stock';
-import { useStocks } from '../hooks/useStocks';
+import { useStocks } from './useStocks';
 import { PortfolioHeader } from '../components/PortfolioHeader';
 import { TradeButtons } from '../components/TradeButtons';
 import { StockCard } from '../components/StockCard';

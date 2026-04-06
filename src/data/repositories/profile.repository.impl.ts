@@ -45,7 +45,16 @@ export class ProfileRepositoryImpl implements IProfileRepository {
         preferences
       );
 
-      // Create profile entity
+      // If API returns empty response, fetch fresh profile data
+      if (!response || Object.keys(response).length === 0) {
+        // Fetch updated profile from remote
+        const freshProfile = await this.remoteDataSource.getProfile();
+        const profile = Profile.create(freshProfile);
+        await this.localDataSource.saveProfile(profile);
+        return profile;
+      }
+
+      // Create profile entity from response
       const profile = Profile.create(response);
 
       // Update local cache

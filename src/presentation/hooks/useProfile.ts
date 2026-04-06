@@ -75,7 +75,17 @@ export const useProfile = (): UseProfileReturn => {
         const updatedProfile = await updateNotificationPreferencesUseCase.execute(
           preferences
         );
-        setProfile(updatedProfile);
+        
+        // If API returns empty response, update local profile copy instead
+        if (updatedProfile && Object.keys(updatedProfile).length > 0) {
+          setProfile(updatedProfile);
+        } else {
+          // Update local profile state with the new value
+          setProfile({
+            ...profile,
+            [key]: value,
+          });
+        }
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : 'Update failed';

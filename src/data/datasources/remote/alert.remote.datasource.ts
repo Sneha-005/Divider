@@ -102,6 +102,93 @@ export class AlertRemoteDataSource {
   }
 
   /**
+   * Delete an alert
+   */
+  async deleteAlert(alertId: string): Promise<void> {
+    try {
+      const token = await this.authLocalDataSource.getToken();
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+
+      const response = await fetch(`${API_BASE_URL}/trading/alerts/${alertId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorMessage = await this.extractErrorMessage(response);
+        throw new Error(errorMessage);
+      }
+    } catch (error: any) {
+      if (error.name === "AbortError") {
+        throw new Error("Request timeout. Please check your connection.");
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Update an alert
+   */
+  async updateAlert(
+    alertId: string,
+    symbol: string,
+    price: number,
+    condition: "ABOVE" | "BELOW"
+  ): Promise<CreateAlertResponse> {
+    try {
+      const token = await this.authLocalDataSource.getToken();
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
+
+      const payload = {
+        symbol,
+        price,
+        condition,
+      };
+
+      const response = await fetch(`${API_BASE_URL}/trading/alerts/${alertId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const errorMessage = await this.extractErrorMessage(response);
+        throw new Error(errorMessage);
+      }
+
+      const data: CreateAlertResponse = await response.json();
+      return data;
+    } catch (error: any) {
+      if (error.name === "AbortError") {
+        throw new Error("Request timeout. Please check your connection.");
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Extract error message from response
    */
   private async extractErrorMessage(response: Response): Promise<string> {

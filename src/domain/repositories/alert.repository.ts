@@ -19,4 +19,19 @@ export interface IAlertRepository {
     price: number,
     condition: "ABOVE" | "BELOW"
   ): Promise<Alert>;
+
+  /**
+   * Delete an alert by ID
+   */
+  deleteAlert(alertId: string): Promise<void>;
+
+  /**
+   * Update an existing alert
+   */
+  updateAlert(
+    alertId: string,
+    symbol: string,
+    price: number,
+    condition: "ABOVE" | "BELOW"
+  ): Promise<Alert>;
 }

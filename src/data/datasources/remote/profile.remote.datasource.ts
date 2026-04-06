@@ -67,6 +67,8 @@ export class ProfileRemoteDataSource {
         throw new Error("No authentication token found");
       }
 
+      console.log('📤 Sending notification preferences update:', preferences);
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT);
 
@@ -82,12 +84,28 @@ export class ProfileRemoteDataSource {
 
       clearTimeout(timeoutId);
 
+      console.log('📥 API Response status:', response.status);
+
       if (!response.ok) {
         const errorMessage = await this.extractErrorMessage(response);
         throw new Error(errorMessage);
       }
 
-      const data: ProfileResponse = await response.json();
+      // Handle empty response body
+      const contentLength = response.headers.get("content-length");
+      if (contentLength === "0" || response.status === 204) {
+        console.log('✓ Update successful (empty response)');
+        return {} as ProfileResponse;
+      }
+
+      const text = await response.text();
+      if (!text) {
+        console.log('✓ Update successful (no body)');
+        return {} as ProfileResponse;
+      }
+
+      console.log('✓ Update successful with response data');
+      const data: ProfileResponse = JSON.parse(text);
       return data;
     } catch (error: any) {
       if (error.name === "AbortError") {

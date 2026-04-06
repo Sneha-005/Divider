@@ -60,8 +60,8 @@ export default function AlertsScreen() {
             <Text style={styles.loadingText}>Loading alerts...</Text>
           </View>
         ) : (activeAlerts && activeAlerts.length > 0) ? (
-          activeAlerts.map(item => (
-            <View key={item.alertId} style={styles.activeCard}>
+          activeAlerts.map((item, index) => (
+            <View key={item.alertId || `active-${index}`} style={styles.activeCard}>
               <Text style={styles.symbol}>
                 {item.symbol} {item.getDisplayCondition()} ₹{item.thresholdPrice.toFixed(2)}
               </Text>
@@ -71,16 +71,6 @@ export default function AlertsScreen() {
               <View style={styles.statusRow}>
                 <View style={styles.greenDot} />
                 <Text style={styles.active}>ACTIVE</Text>
-              </View>
-
-              <View style={styles.btnRow}>
-                <TouchableOpacity style={styles.editBtn}>
-                  <Text style={{ color: colors.text }}>Edit</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.deleteBtn}>
-                  <Text style={{ color: '#fff' }}>Delete</Text>
-                </TouchableOpacity>
               </View>
             </View>
           ))
@@ -121,6 +111,7 @@ export default function AlertsScreen() {
                 condition === 'ABOVE' && styles.conditionBtnActive,
               ]}
               onPress={() => setCondition('ABOVE')}
+              disabled={creating}
             >
               <Text
                 style={[
@@ -138,6 +129,7 @@ export default function AlertsScreen() {
                 condition === 'BELOW' && styles.conditionBtnActive,
               ]}
               onPress={() => setCondition('BELOW')}
+              disabled={creating}
             >
               <Text
                 style={[
@@ -167,8 +159,8 @@ export default function AlertsScreen() {
         <Text style={styles.sectionTitle}>🔴 Triggered Alerts</Text>
 
         {(triggeredAlerts && triggeredAlerts.length > 0) ? (
-          triggeredAlerts.map(item => (
-            <View key={item.alertId} style={styles.triggeredCard}>
+          triggeredAlerts.map((item, index) => (
+            <View key={item.alertId || `triggered-${index}`} style={styles.triggeredCard}>
               <Text style={styles.symbol}>
                 {item.symbol} {item.getDisplayCondition()} ₹{item.thresholdPrice.toFixed(2)}
               </Text>
@@ -283,28 +275,6 @@ const styles = StyleSheet.create({
     color: colors.success,
     fontWeight: '600',
     fontSize: 12,
-  },
-
-  btnRow: {
-    flexDirection: 'row',
-    marginTop: 10,
-    gap: 8,
-  },
-
-  editBtn: {
-    flex: 1,
-    backgroundColor: colors.border,
-    padding: 8,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-
-  deleteBtn: {
-    flex: 1,
-    backgroundColor: colors.error,
-    padding: 8,
-    borderRadius: 8,
-    alignItems: 'center',
   },
 
   label: {

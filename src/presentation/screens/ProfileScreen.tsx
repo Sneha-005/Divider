@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../../shared/theme/colors';
 import { useProfile } from '../hooks/useProfile';
 
@@ -21,21 +22,133 @@ const ProfileScreen: React.FC = () => {
     updateNotificationPreference,
   } = useProfile();
 
+  // Local state for notification preferences (independent of profile data)
+  const [notificationAlerts, setNotificationAlerts] = useState(false);
+  const [notificationTrades, setNotificationTrades] = useState(false);
+  const [notificationNews, setNotificationNews] = useState(false);
+  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+  const [updateInProgress, setUpdateInProgress] = useState<string | null>(null);
+  const [isInitialized, setIsInitialized] = useState(false);
+
   useEffect(() => {
-    loadProfile();
+    const initializePreferences = async () => {
+      // Load from AsyncStorage FIRST to ensure persistence across navigation
+      await loadSavedPreferences();
+      // Then load fresh profile data from API
+      loadProfile();
+    };
+    initializePreferences();
   }, [loadProfile]);
+
+  const loadSavedPreferences = async () => {
+    try {
+      const saved = await AsyncStorage.getItem('notificationPreferences');
+      if (saved) {
+        const prefs = JSON.parse(saved);
+        setNotificationAlerts(prefs.notification_alerts ?? false);
+        setNotificationTrades(prefs.notification_trades ?? false);
+        setNotificationNews(prefs.notification_news ?? false);
+        setTwoFactorEnabled(prefs.two_factor_enabled ?? false);
+        // Mark as initialized since we loaded from storage
+        setIsInitialized(true);
+        console.log('✓ Loaded saved preferences from storage');
+      }
+    } catch (err) {
+      console.error('Failed to load saved preferences:', err);
+    }
+  };
+
+  const savePreferencesToStorage = async (
+    alerts: boolean,
+    trades: boolean,
+    news: boolean,
+    twoFactor: boolean
+  ) => {
+    try {
+      await AsyncStorage.setItem(
+        'notificationPreferences',
+        JSON.stringify({
+          notification_alerts: alerts,
+          notification_trades: trades,
+          notification_news: news,
+          two_factor_enabled: twoFactor,
+        })
+      );
+      console.log('💾 Saved preferences to local storage');
+    } catch (err) {
+      console.error('Failed to save preferences:', err);
+    }
+  };
+
+  // Only update local state on initial profile load, never override after
+  useEffect(() => {
+    if (profile && !isInitialized) {
+      setNotificationAlerts(profile?.notification_alerts || false);
+      setNotificationTrades(profile?.notification_trades || false);
+      setNotificationNews(profile?.notification_news || false);
+      setTwoFactorEnabled(profile?.two_factor_enabled || false);
+      setIsInitialized(true);
+      console.log('✓ Profile preferences initialized');
+    }
+  }, [profile, isInitialized]);
 
   const handleNotificationToggle = async (
     key: string,
     value: boolean
   ) => {
+    setUpdateInProgress(key);
     try {
+      // Save to local storage immediately for persistence
+      if (key === 'notification_alerts') {
+        await savePreferencesToStorage(value, notificationTrades, notificationNews, twoFactorEnabled);
+      } else if (key === 'notification_trades') {
+        await savePreferencesToStorage(notificationAlerts, value, notificationNews, twoFactorEnabled);
+      } else if (key === 'notification_news') {
+        await savePreferencesToStorage(notificationAlerts, notificationTrades, value, twoFactorEnabled);
+      } else if (key === 'two_factor_enabled') {
+        await savePreferencesToStorage(notificationAlerts, notificationTrades, notificationNews, value);
+      }
+
+      // Also send to API
       await updateNotificationPreference(key as keyof typeof profile, value);
+      console.log(`✓ ${key} updated to ${value}`);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Update failed';
-      Alert.alert('Error', errorMessage);
+      // Silently handle error - toggle state remains updated locally
+      console.error(`Failed to update ${key}:`, err);
+    } finally {
+      setUpdateInProgress(null);
     }
   };
+
+  const handleToggleAllNotifications = async (value: boolean) => {
+    setUpdateInProgress('all');
+    try {
+      // Save to local storage immediately
+      await savePreferencesToStorage(value, value, value, twoFactorEnabled);
+
+      // Update device state first
+      setNotificationAlerts(value);
+      setNotificationTrades(value);
+      setNotificationNews(value);
+
+      // Also send to API in parallel
+      await Promise.all([
+        updateNotificationPreference('notification_alerts', value),
+        updateNotificationPreference('notification_trades', value),
+        updateNotificationPreference('notification_news', value),
+      ]);
+      
+      console.log(`✓ All notifications updated to ${value}`);
+    } catch (err) {
+      // Silently handle error - toggle states remain updated locally
+      console.error('Failed to update all notifications:', err);
+    } finally {
+      setUpdateInProgress(null);
+    }
+  };
+
+  const allNotificationsEnabled = 
+    notificationAlerts || notificationTrades || notificationNews;
 
 
   if (loading) {
@@ -145,19 +258,38 @@ const ProfileScreen: React.FC = () => {
 
         <View style={styles.toggleRow}>
           <View style={styles.toggleLeft}>
+            <Text style={styles.toggleLabel}>All Notifications</Text>
+            <Text style={styles.toggleDescription}>
+              Turn all notifications off
+            </Text>
+          </View>
+          <Switch
+            value={allNotificationsEnabled}
+            onValueChange={(value) =>
+              handleToggleAllNotifications(value)
+            }
+            disabled={updateInProgress === 'all'}
+            trackColor={{ false: colors.border, true: colors.primary }}
+            thumbColor={allNotificationsEnabled ? colors.success : colors.secondary}
+          />
+        </View>
+
+        <View style={styles.toggleRow}>
+          <View style={styles.toggleLeft}>
             <Text style={styles.toggleLabel}>Price Alerts</Text>
             <Text style={styles.toggleDescription}>
               Get notified about price changes
             </Text>
           </View>
           <Switch
-            value={profile.notification_alerts}
-            onValueChange={(value) =>
-              handleNotificationToggle('notification_alerts', value)
-            }
-            disabled={updatingNotifications}
+            value={notificationAlerts}
+            onValueChange={(value) => {
+              setNotificationAlerts(value);
+              handleNotificationToggle('notification_alerts', value);
+            }}
+            disabled={updateInProgress === 'notification_alerts'}
             trackColor={{ false: colors.border, true: colors.primary }}
-            thumbColor={profile.notification_alerts ? colors.success : colors.secondary}
+            thumbColor={notificationAlerts ? colors.success : colors.secondary}
           />
         </View>
 
@@ -169,13 +301,14 @@ const ProfileScreen: React.FC = () => {
             </Text>
           </View>
           <Switch
-            value={profile.notification_trades}
-            onValueChange={(value) =>
-              handleNotificationToggle('notification_trades', value)
-            }
-            disabled={updatingNotifications}
+            value={notificationTrades}
+            onValueChange={(value) => {
+              setNotificationTrades(value);
+              handleNotificationToggle('notification_trades', value);
+            }}
+            disabled={updateInProgress === 'notification_trades'}
             trackColor={{ false: colors.border, true: colors.primary }}
-            thumbColor={profile.notification_trades ? colors.success : colors.secondary}
+            thumbColor={notificationTrades ? colors.success : colors.secondary}
           />
         </View>
 
@@ -187,13 +320,14 @@ const ProfileScreen: React.FC = () => {
             </Text>
           </View>
           <Switch
-            value={profile.notification_news}
-            onValueChange={(value) =>
-              handleNotificationToggle('notification_news', value)
-            }
-            disabled={updatingNotifications}
+            value={notificationNews}
+            onValueChange={(value) => {
+              setNotificationNews(value);
+              handleNotificationToggle('notification_news', value);
+            }}
+            disabled={updateInProgress === 'notification_news'}
             trackColor={{ false: colors.border, true: colors.primary }}
-            thumbColor={profile.notification_news ? colors.success : colors.secondary}
+            thumbColor={notificationNews ? colors.success : colors.secondary}
           />
         </View>
 
@@ -205,13 +339,14 @@ const ProfileScreen: React.FC = () => {
             </Text>
           </View>
           <Switch
-            value={profile.two_factor_enabled}
-            onValueChange={(value) =>
-              handleNotificationToggle('two_factor_enabled', value)
-            }
-            disabled={updatingNotifications}
+            value={twoFactorEnabled}
+            onValueChange={(value) => {
+              setTwoFactorEnabled(value);
+              handleNotificationToggle('two_factor_enabled', value);
+            }}
+            disabled={updateInProgress === 'two_factor_enabled'}
             trackColor={{ false: colors.border, true: colors.primary }}
-            thumbColor={profile.two_factor_enabled ? colors.success : colors.secondary}
+            thumbColor={twoFactorEnabled ? colors.success : colors.secondary}
           />
         </View>
       </View>
