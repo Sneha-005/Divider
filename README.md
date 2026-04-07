@@ -4,6 +4,14 @@ A React Native trading application built with Expo, featuring stock portfolio ma
 
 ---
 
+## About
+
+**Divider** is a virtual stock trading application that allows users to practice and learn stock market trading without risking real money. Every user starts with a virtual wallet of **$50,000** to trade stocks, build a diversified portfolio, and practice investment strategies. The app provides real-time market data, portfolio tracking, and a seamless trading experience on both iOS and Android platforms.
+
+Whether you're a beginner learning about stocks or an experienced investor looking to practice new strategies, Divider gives you the tools and virtual capital to succeed.
+
+---
+
 ## Table of Contents
 
 - [Features](#features)
