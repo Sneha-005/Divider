@@ -6,7 +6,7 @@ import {
   StyleSheet,
   SafeAreaView,
 } from 'react-native';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { SvgIcon } from '../../../components/svg-icon';
 import { colors } from '../../shared/theme/colors';
 
 interface BottomTabNavigationProps {
@@ -15,11 +15,11 @@ interface BottomTabNavigationProps {
 }
 
 const TABS = [
-  { name: 'home', icon: 'home-outline', activeIcon: 'home', label: 'Home' },
-  { name: 'chart', icon: 'chart-line', activeIcon: 'chart-line-variant', label: 'Chart' },
-  { name: 'portfolio', icon: 'briefcase-variant-outline', activeIcon: 'briefcase-variant', label: 'Portfolio' },
-  { name: 'alert', icon: 'bell-outline', activeIcon: 'bell', label: 'Alert' },
-  { name: 'profile', icon: 'account-circle-outline', activeIcon: 'account-circle', label: 'Profile' },
+  { name: 'home', icon: 'home', label: 'Home' },
+  { name: 'chart', icon: 'chart', label: 'Chart' },
+  { name: 'portfolio', icon: 'portfolio', label: 'Portfolio' },
+  { name: 'alert', icon: 'alert', label: 'Alert' },
+  { name: 'profile', icon: 'profile', label: 'Profile' },
 ] as const;
 
 export const BottomTabNavigation: React.FC<BottomTabNavigationProps> = ({
@@ -48,11 +48,10 @@ export const BottomTabNavigation: React.FC<BottomTabNavigationProps> = ({
                 {isActive && <View style={styles.activeIndicator} />}
 
                 {/* Icon */}
-                <MaterialCommunityIcons
-                  name={isActive ? tab.activeIcon : tab.icon}
+                <SvgIcon
+                  name={tab.icon}
                   size={isActive ? 24 : 22}
                   color={isActive ? colors.primary : colors.textSecondary}
-                  style={styles.icon}
                 />
 
                 {/* Label */}
