@@ -1,22 +1,14 @@
 {
-  "extends": "expo/tsconfig.base",
   "compilerOptions": {
-    "strict": true,
-    "jsx": "react-native",
-    "forceConsistentCasingInFileNames": true,
+    "jsx": "react",
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
     "paths": {
-      "@/*": ["./*"],
-      "@presentation/*": ["./src/presentation/*"],
-      "@domain/*": ["./src/domain/*"],
-      "@data/*": ["./src/data/*"],
-      "@shared/*": ["./src/shared/*"],
-      "@config/*": ["./src/config/*"]
+      "@domain/*": ["src/domain/*"],
+      "@data/*": ["src/data/*"],
+      "@presentation/*": ["src/presentation/*"],
+      "@shared/*": ["src/shared/*"]
     }
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts"
-  ]
+  "extends": "@react-native/typescript-config/tsconfig.json"
 }

@@ -35,7 +35,6 @@ export const useMarketData = (): UseMarketDataResult => {
 
   const connectWebSocket = async () => {
     try {
-      // Get token from AsyncStorage
       const token = await AsyncStorage.getItem('auth_token');
       
       if (!token) {
@@ -48,12 +47,10 @@ export const useMarketData = (): UseMarketDataResult => {
         return;
       }
 
-      // Clear any previous connection
       if (wsRef.current) {
         wsRef.current.close();
       }
 
-      // Create WebSocket connection with token
       const wsUrl = `wss://divider-backend.onrender.com/ws?token=${token}`;
       console.log('[WebSocket] Connecting...');
       
@@ -80,7 +77,6 @@ export const useMarketData = (): UseMarketDataResult => {
             return;
           }
 
-          // Handle array of market data
           if (Array.isArray(data)) {
             if (shouldLogUpdate) {
               const availableByCompany = data
@@ -136,7 +132,6 @@ export const useMarketData = (): UseMarketDataResult => {
           setConnected(false);
         }
         
-        // Attempt auto-reconnect with exponential backoff
         if (reconnectAttemptsRef.current < maxReconnectAttempts) {
           const delay = Math.min(
             baseReconnectDelay * Math.pow(2, reconnectAttemptsRef.current),
@@ -178,7 +173,6 @@ export const useMarketData = (): UseMarketDataResult => {
     mountedRef.current = true;
     connectWebSocket();
 
-    // Cleanup on unmount
     return () => {
       mountedRef.current = false;
       
@@ -190,8 +184,7 @@ export const useMarketData = (): UseMarketDataResult => {
         wsRef.current = null;
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array - connect only on mount
+  }, []); 
 
   return {
     marketData,

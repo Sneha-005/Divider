@@ -7,7 +7,6 @@ import { StockRepositoryImpl } from '../../data/repositories/StockRepositoryImpl
 import { StockLocalDataSource } from '../../data/datasources/StockLocalDataSource';
 import { REFRESH_INTERVAL_MS } from '../../utils/constants';
 
-// Single data source instance so portfolio state persists
 const dataSource = new StockLocalDataSource();
 const repository = new StockRepositoryImpl(dataSource);
 const getStocksUseCase = new GetStocksUseCase(repository);
@@ -66,12 +65,10 @@ export const useStocks = () => {
     await fetchStocks();
   }, [fetchStocks]);
 
-  // Initial load
   useEffect(() => {
     loadAll();
   }, [loadAll]);
 
-  // Auto-refresh stock prices
   useEffect(() => {
     intervalRef.current = setInterval(fetchStocks, REFRESH_INTERVAL_MS);
     return () => {

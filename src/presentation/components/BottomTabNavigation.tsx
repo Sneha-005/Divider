@@ -7,6 +7,7 @@ import {
   SafeAreaView,
 } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { colors } from '../../shared/theme/colors';
 
 interface BottomTabNavigationProps {
   activeTab: 'home' | 'chart' | 'portfolio' | 'alert' | 'profile';
@@ -50,7 +51,7 @@ export const BottomTabNavigation: React.FC<BottomTabNavigationProps> = ({
                 <MaterialCommunityIcons
                   name={isActive ? tab.activeIcon : tab.icon}
                   size={isActive ? 24 : 22}
-                  color={isActive ? '#00D084' : '#B0B8D4'}
+                  color={isActive ? colors.primary : colors.textSecondary}
                   style={styles.icon}
                 />
 
@@ -75,7 +76,7 @@ export const BottomTabNavigation: React.FC<BottomTabNavigationProps> = ({
 
 const styles = StyleSheet.create({
   safeArea: {
-    backgroundColor: 'transparent',
+    backgroundColor: colors.background,
   },
   container: {
     position: 'relative',
@@ -85,6 +86,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 1000,
+    backgroundColor: colors.background,
   },
   glassBackground: {
     position: 'absolute',
@@ -92,7 +94,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(26, 29, 46, 0.95)',
+    backgroundColor: 'rgba(26, 31, 58, 0.98)',
     borderRadius: 20,
     borderWidth: 1.5,
     borderColor: 'rgba(255, 255, 255, 0.1)',
@@ -130,7 +132,7 @@ const styles = StyleSheet.create({
     width: 5,
     height: 5,
     borderRadius: 2.5,
-    backgroundColor: '#00D084',
+    backgroundColor: colors.primary,
     bottom: 6,
   },
   icon: {
@@ -139,11 +141,11 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 10,
     fontWeight: '600',
-    color: '#B0B8D4',
+    color: colors.textSecondary,
     textAlign: 'center',
   },
   activeLabel: {
-    color: '#00D084',
+    color: colors.primary,
     fontWeight: '700',
     fontSize: 11,
   },

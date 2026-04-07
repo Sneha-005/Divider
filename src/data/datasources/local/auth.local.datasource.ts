@@ -1,8 +1,3 @@
-/**
- * Auth Local Data Source
- * Handles local storage (token, user data)
- */
-
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { User } from "../../../domain/entities/user.entity";
 
@@ -15,13 +10,7 @@ const STORAGE_KEYS = {
 const TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 export class AuthLocalDataSource {
-  private isTokenExpired(savedAt: number): boolean {
-    return Date.now() - savedAt >= TOKEN_TTL_MS;
-  }
-
-  /**
-   * Save user token
-   */
+  
   async saveToken(token: string): Promise<void> {
     try {
       await AsyncStorage.multiSet([
@@ -34,9 +23,6 @@ export class AuthLocalDataSource {
     }
   }
 
-  /**
-   * Get saved token
-   */
   async getToken(): Promise<string | null> {
     try {
       const token = await AsyncStorage.getItem(STORAGE_KEYS.USER_TOKEN);
@@ -66,33 +52,6 @@ export class AuthLocalDataSource {
     }
   }
 
-  /**
-   * Remaining token lifetime in milliseconds.
-   * Returns 0 when token is missing or already expired.
-   */
-  async getRemainingTokenLifetimeMs(): Promise<number> {
-    try {
-      const token = await AsyncStorage.getItem(STORAGE_KEYS.USER_TOKEN);
-      const savedAtRaw = await AsyncStorage.getItem(STORAGE_KEYS.TOKEN_SAVED_AT);
-
-      if (!token || !savedAtRaw) {
-        return 0;
-      }
-
-      const savedAt = Number(savedAtRaw);
-      if (!Number.isFinite(savedAt)) {
-        return 0;
-      }
-
-      return Math.max(0, TOKEN_TTL_MS - (Date.now() - savedAt));
-    } catch (error) {
-      return 0;
-    }
-  }
-
-  /**
-   * Remove token (logout)
-   */
   async removeToken(): Promise<void> {
     try {
       await AsyncStorage.multiRemove([
@@ -105,9 +64,6 @@ export class AuthLocalDataSource {
     }
   }
 
-  /**
-   * Save user data
-   */
   async saveUserData(user: User): Promise<void> {
     try {
       await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(user));
@@ -117,9 +73,6 @@ export class AuthLocalDataSource {
     }
   }
 
-  /**
-   * Get saved user data
-   */
   async getUserData(): Promise<User | null> {
     try {
       const data = await AsyncStorage.getItem(STORAGE_KEYS.USER_DATA);
@@ -130,9 +83,6 @@ export class AuthLocalDataSource {
     }
   }
 
-  /**
-   * Clear all auth data (logout)
-   */
   async clearAuthData(): Promise<void> {
     try {
       await AsyncStorage.multiRemove([
