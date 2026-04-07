@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Dimensions,
   TouchableOpacity,
-  FlatList,
   SafeAreaView,
   ActivityIndicator,
   ScrollView,
@@ -13,11 +12,41 @@ import {
 import { colors } from '../../shared/theme/colors';
 import { useCandles } from '../hooks/useCandles';
 import { Candle } from '../../domain/entities/candle.entity';
+import { useStocks } from '../hooks/useStock';
 
 const screenWidth = Dimensions.get('window').width;
+const CANDLE_LIMIT = 10;
+const CHART_HEIGHT = 210;
+const CANDLE_SLOT_WIDTH = 36;
+const AXIS_COLUMN_WIDTH = 56;
 
-const timeframes = ['1 Min', '5 Min', '15 Min', '1 Hour'];
 const DEFAULT_SYMBOL = 'RELIANCE-CE-2900';
+
+type CompanyOption = {
+  name: string;
+  symbol: string;
+};
+
+const FALLBACK_COMPANIES: CompanyOption[] = [
+  { name: 'Reliance', symbol: 'RELIANCE-CE-2900' },
+  { name: 'HDFC Bank', symbol: 'HDFC-PE-1400' },
+  { name: 'Infosys', symbol: 'INFY-CE-1500' },
+  { name: 'Tata Consultancy', symbol: 'TCS-CE-4500' },
+  { name: 'ITC Limited', symbol: 'ITC-PE-2800' },
+];
+
+const formatXAxisTime = (timestamp: string): string => {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) {
+    return '--:--';
+  }
+
+  return date.toLocaleTimeString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+};
 
 // OHLC Candlestick Component
 type CandlestickProps = {
@@ -29,7 +58,7 @@ type CandlestickProps = {
 };
 
 function CandlestickBar({ candle, minPrice, maxPrice, width, height }: CandlestickProps) {
-  const range = maxPrice - minPrice;
+  const range = maxPrice - minPrice || 1;
   const bodyWidth = width * 0.6;
 
   // Calculate normalized positions (0 = minPrice, 1 = maxPrice)
@@ -46,7 +75,9 @@ function CandlestickBar({ candle, minPrice, maxPrice, width, height }: Candlesti
 
   const isGain = candle.close >= candle.open;
   const bodyTop = Math.min(openY, closeY);
-  const bodyHeight = Math.abs(closeY - openY) || 2; // min 2px for visibility
+  const bodyHeight = Math.max(Math.abs(closeY - openY), 2);
+  const wickTop = Math.min(highY, lowY);
+  const wickHeight = Math.max(Math.abs(highY - lowY), 1);
   const wickColor = isGain ? colors.success : colors.error;
   const bodyColor = isGain ? colors.success : colors.error;
 
@@ -58,8 +89,8 @@ function CandlestickBar({ candle, minPrice, maxPrice, width, height }: Candlesti
           position: 'absolute',
           width: 1,
           left: width / 2 - 0.5,
-          top: lowY,
-          height: highY - lowY || 1,
+          top: wickTop,
+          height: wickHeight,
           backgroundColor: wickColor,
         }}
       />
@@ -81,40 +112,152 @@ function CandlestickBar({ candle, minPrice, maxPrice, width, height }: Candlesti
 }
 
 export default function ChartScreen() {
-  const [selectedTF, setSelectedTF] = useState('1 Min');
-  const [symbol] = useState(DEFAULT_SYMBOL);
+  const [symbol, setSymbol] = useState(DEFAULT_SYMBOL);
+  const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
   const { candles, loading, error, fetchCandles } = useCandles();
+  const { stocks } = useStocks();
 
-  const mapTimeframeToAPI = (tf: string): string => {
-    const map: Record<string, string> = {
-      '1 Min': '1m',
-      '5 Min': '5m',
-      '15 Min': '15m',
-      '1 Hour': '1h',
-    };
-    return map[tf] || '1m';
-  };
+  const companyOptions = useMemo<CompanyOption[]>(() => {
+    if (stocks.length === 0) {
+      return FALLBACK_COMPANIES;
+    }
+
+    const uniqueCompanies = new Map<string, CompanyOption>();
+    stocks.forEach(stock => {
+      if (!uniqueCompanies.has(stock.symbol)) {
+        uniqueCompanies.set(stock.symbol, {
+          name: stock.name,
+          symbol: stock.symbol,
+        });
+      }
+    });
+
+    return Array.from(uniqueCompanies.values());
+  }, [stocks]);
+
+  const selectedCompany = useMemo(
+    () => companyOptions.find(company => company.symbol === symbol),
+    [companyOptions, symbol],
+  );
 
   useEffect(() => {
-    fetchCandles(symbol, 50, mapTimeframeToAPI(selectedTF));
-  }, [symbol, selectedTF, fetchCandles]);
+    if (!symbol) {
+      return;
+    }
+    fetchCandles(symbol, CANDLE_LIMIT);
+  }, [symbol, fetchCandles]);
 
-  // Calculate chart bounds
-  const getChartBounds = () => {
-    if (candles.length === 0) return { min: 0, max: 100 };
-    const allPrices = candles.flatMap(c => [c.open, c.high, c.low, c.close]);
-    const min = Math.min(...allPrices);
-    const max = Math.max(...allPrices);
-    const padding = (max - min) * 0.1;
-    return { min: min - padding, max: max + padding };
-  };
+  useEffect(() => {
+    if (companyOptions.length === 0) {
+      return;
+    }
 
-  const { min: minPrice, max: maxPrice } = getChartBounds();
-  const candlesToShow = candles.slice(-20); // Show last 20 candles
-  const chartWidth = Math.max(screenWidth - 32, candlesToShow.length * 35);
+    const symbolExists = companyOptions.some(company => company.symbol === symbol);
+    if (!symbolExists) {
+      setSymbol(companyOptions[0].symbol);
+    }
+  }, [companyOptions, symbol]);
+
+  const candlesToShow = useMemo(() => {
+    const sortedCandles = [...candles].sort(
+      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+    );
+
+    return sortedCandles.slice(-CANDLE_LIMIT);
+  }, [candles]);
+
+  const chartStats = useMemo(() => {
+    if (candlesToShow.length === 0) {
+      return {
+        scaleMin: 0,
+        scaleMax: 100,
+        priceHigh: 100,
+        priceLow: 0,
+      };
+    }
+
+    const highs = candlesToShow.map((candle) => candle.high);
+    const lows = candlesToShow.map((candle) => candle.low);
+    const priceLow = Math.min(...lows);
+    const priceHigh = Math.max(...highs);
+    const padding = Math.max((priceHigh - priceLow) * 0.08, 0.5);
+
+    return {
+      scaleMin: priceLow - padding,
+      scaleMax: priceHigh + padding,
+      priceHigh,
+      priceLow,
+    };
+  }, [candlesToShow]);
+
+  const yAxisTicks = useMemo(() => {
+    const tickCount = 5;
+    const range = chartStats.scaleMax - chartStats.scaleMin || 1;
+
+    return Array.from({ length: tickCount }, (_, index) => {
+      const ratio = index / (tickCount - 1);
+      return chartStats.scaleMax - range * ratio;
+    });
+  }, [chartStats]);
+
+  const xAxisLabels = useMemo(() => {
+    if (candlesToShow.length === 0) {
+      return [] as Array<{ key: string; label: string }>;
+    }
+
+    return candlesToShow.map((candle, index) => ({
+      key: `${index}-${candle.timestamp}`,
+      label: formatXAxisTime(candle.timestamp),
+    }));
+  }, [candlesToShow]);
+
+  const latestCandle = candlesToShow[candlesToShow.length - 1];
+  const previousClose = candlesToShow.length > 1
+    ? candlesToShow[candlesToShow.length - 2].close
+    : latestCandle?.open ?? 0;
+  const absoluteChange = latestCandle ? latestCandle.close - previousClose : 0;
+  const percentChange = previousClose
+    ? (absoluteChange / previousClose) * 100
+    : 0;
+  const isGain = absoluteChange >= 0;
+  const chartWidth = Math.max(
+    screenWidth - AXIS_COLUMN_WIDTH * 2 - 56,
+    candlesToShow.length * CANDLE_SLOT_WIDTH,
+  );
+
+  useEffect(() => {
+    if (candlesToShow.length === 0) {
+      return;
+    }
+
+    console.log('[Chart] Candle coordinates', {
+      symbol,
+      count: candlesToShow.length,
+      points: candlesToShow.map((candle, index) => ({
+        index: index + 1,
+        time: formatXAxisTime(candle.timestamp),
+        open: candle.open,
+        high: candle.high,
+        low: candle.low,
+        close: candle.close,
+      })),
+    });
+
+    console.log('[Chart] Axis coordinates', {
+      xLabels: xAxisLabels.map((item) => item.label),
+      yTicks: yAxisTicks.map((value) => Number(value.toFixed(2))),
+      scaleMin: Number(chartStats.scaleMin.toFixed(2)),
+      scaleMax: Number(chartStats.scaleMax.toFixed(2)),
+    });
+  }, [symbol, candlesToShow, xAxisLabels, yAxisTicks, chartStats]);
 
   return (
     <SafeAreaView style={styles.container}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        nestedScrollEnabled
+      >
 
       {/* ERROR MESSAGE */}
       {error && (
@@ -124,30 +267,79 @@ export default function ChartScreen() {
       )}
 
       {/* HEADER */}
-      <Text style={styles.title}>{symbol.split('-')[0]}</Text>
-
-      {/* TIMEFRAME */}
-      <View style={styles.tfRow}>
-        {timeframes.map(tf => (
-          <TouchableOpacity
-            key={tf}
-            style={[
-              styles.tfBtn,
-              selectedTF === tf && styles.activeTF,
-            ]}
-            onPress={() => setSelectedTF(tf)}
-          >
-            <Text
-              style={[
-                styles.tfText,
-                selectedTF === tf && styles.activeText,
-              ]}
-            >
-              {tf}
-            </Text>
-          </TouchableOpacity>
-        ))}
+      <View style={styles.headerRow}>
+        <Text style={styles.title}>Market Chart</Text>
+        <Text style={styles.limitBadge}>Last {CANDLE_LIMIT}</Text>
       </View>
+
+      {/* COMPANY DROPDOWN */}
+      <View style={styles.selectorCard}>
+        <Text style={styles.selectorLabel}>Choose Company</Text>
+        <TouchableOpacity
+          style={styles.dropdownTrigger}
+          onPress={() => setShowCompanyDropdown(prev => !prev)}
+          activeOpacity={0.8}
+        >
+          <View>
+            <Text style={styles.dropdownName}>
+              {selectedCompany?.name || symbol.split('-')[0]}
+            </Text>
+            <Text style={styles.dropdownSymbol}>{symbol}</Text>
+          </View>
+          <Text style={styles.dropdownArrow}>{showCompanyDropdown ? '▲' : '▼'}</Text>
+        </TouchableOpacity>
+
+        {showCompanyDropdown && (
+          <View style={styles.dropdownMenu}>
+            <ScrollView nestedScrollEnabled style={styles.dropdownScroll}>
+              {companyOptions.map((company) => {
+                const isSelected = company.symbol === symbol;
+                return (
+                  <TouchableOpacity
+                    key={company.symbol}
+                    style={[
+                      styles.dropdownItem,
+                      isSelected && styles.dropdownItemActive,
+                    ]}
+                    onPress={() => {
+                      setSymbol(company.symbol);
+                      setShowCompanyDropdown(false);
+                    }}
+                  >
+                    <Text
+                      style={[
+                        styles.dropdownItemName,
+                        isSelected && styles.dropdownItemNameActive,
+                      ]}
+                    >
+                      {company.name}
+                    </Text>
+                    <Text style={styles.dropdownItemSymbol}>{company.symbol}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
+      </View>
+
+      {/* SNAPSHOT */}
+      {latestCandle && (
+        <View style={styles.snapshotCard}>
+          <View>
+            <Text style={styles.snapshotLabel}>Latest Close</Text>
+            <Text style={styles.snapshotPrice}>₹{latestCandle.close.toFixed(2)}</Text>
+          </View>
+          <View style={styles.snapshotChangeWrap}>
+            <Text style={[styles.snapshotChange, { color: isGain ? colors.success : colors.error }]}>
+              {isGain ? '+' : ''}{absoluteChange.toFixed(2)}
+            </Text>
+            <Text style={[styles.snapshotPercent, { color: isGain ? colors.success : colors.error }]}>
+              {isGain ? '+' : ''}{percentChange.toFixed(2)}%
+            </Text>
+          </View>
+        </View>
+      )}
 
       {/* CHART */}
       <View style={styles.chartCard}>
@@ -157,32 +349,72 @@ export default function ChartScreen() {
             <Text style={styles.loadingText}>Loading chart data...</Text>
           </View>
         ) : candlesToShow.length > 0 ? (
-          <ScrollView 
-            horizontal 
+          <ScrollView
+            horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingHorizontal: 8 }}
           >
-            <View style={styles.ohlcChart}>
-              {/* Y-axis labels */}
-              <View style={styles.yAxisLabels}>
-                <Text style={styles.yAxisLabel}>₹{maxPrice.toFixed(0)}</Text>
-                <Text style={styles.yAxisLabel}>₹{((minPrice + maxPrice) / 2).toFixed(0)}</Text>
-                <Text style={styles.yAxisLabel}>₹{minPrice.toFixed(0)}</Text>
+            <View style={styles.chartCanvas}>
+              <View style={styles.ohlcChart}>
+                <View style={styles.yAxisLabelsLeft}>
+                  <Text style={styles.axisTitle}>Price (INR)</Text>
+                  {yAxisTicks.map((tickValue, index) => (
+                    <Text key={`left-${index}`} style={styles.yAxisLabel}>
+                      ₹{tickValue.toFixed(2)}
+                    </Text>
+                  ))}
+                </View>
+
+                <View style={[styles.chartPlotArea, { width: chartWidth }]}> 
+                  {yAxisTicks.map((_, index) => (
+                    <View
+                      key={`line-${index}`}
+                      style={[
+                        styles.gridLine,
+                        {
+                          top: (CHART_HEIGHT * index) / (yAxisTicks.length - 1),
+                        },
+                      ]}
+                    />
+                  ))}
+
+                  <View style={styles.candlesContainer}>
+                    {candlesToShow.map((candle, idx) => (
+                      <CandlestickBar
+                        key={idx}
+                        candle={candle}
+                        minPrice={chartStats.scaleMin}
+                        maxPrice={chartStats.scaleMax}
+                        width={CANDLE_SLOT_WIDTH}
+                        height={CHART_HEIGHT}
+                      />
+                    ))}
+                  </View>
+                </View>
+
+                <View style={styles.yAxisLabelsRight}>
+                  <Text style={[styles.axisTitle, styles.axisTitleRight]}>Price (INR)</Text>
+                  {yAxisTicks.map((tickValue, index) => (
+                    <Text key={`right-${index}`} style={[styles.yAxisLabel, styles.yAxisLabelRight]}>
+                      ₹{tickValue.toFixed(2)}
+                    </Text>
+                  ))}
+                </View>
               </View>
 
-              {/* Candlesticks */}
-              <View style={styles.candlesContainer}>
-                {candlesToShow.map((candle, idx) => (
-                  <CandlestickBar
-                    key={idx}
-                    candle={candle}
-                    minPrice={minPrice}
-                    maxPrice={maxPrice}
-                    width={32}
-                    height={200}
-                  />
-                ))}
+              <View style={styles.xAxisRow}>
+                <View style={styles.xAxisSpacer} />
+                <View style={[styles.xAxisLabelsRow, { width: chartWidth }]}> 
+                  {xAxisLabels.map((item) => (
+                    <Text key={item.key} style={[styles.xAxisLabel, { width: CANDLE_SLOT_WIDTH }]}>
+                      {item.label}
+                    </Text>
+                  ))}
+                </View>
+                <View style={styles.xAxisSpacer} />
               </View>
+
+              <Text style={styles.axisHint}>X: Time</Text>
             </View>
           </ScrollView>
         ) : (
@@ -190,43 +422,9 @@ export default function ChartScreen() {
         )}
       </View>
 
-      {/* TABLE TITLE */}
-      <Text style={styles.section}>Candle Data</Text>
+      <Text style={styles.scrollHint}>Swipe chart left or right to inspect all 10 API candle coordinates.</Text>
 
-      {/* TABLE HEADER */}
-      <View style={styles.tableHeader}>
-        <Text style={styles.cell}>Time</Text>
-        <Text style={styles.cell}>Open</Text>
-        <Text style={styles.cell}>High</Text>
-        <Text style={styles.cell}>Low</Text>
-        <Text style={styles.cell}>Close</Text>
-      </View>
-
-      {/* TABLE */}
-      {candlesToShow.length > 0 ? (
-        <FlatList
-          data={candlesToShow.slice(-4).reverse()}
-          keyExtractor={(_, index) => index.toString()}
-          showsVerticalScrollIndicator={false}
-          scrollEnabled={false}
-          renderItem={({ item }) => (
-            <View style={styles.rowItem}>
-              <Text style={styles.cell}>{item.getFormattedTime()}</Text>
-              <Text style={styles.cell}>₹{item.open.toFixed(2)}</Text>
-              <Text style={[styles.cell, styles.green]}>
-                ₹{item.high.toFixed(2)}
-              </Text>
-              <Text style={[styles.cell, styles.red]}>
-                ₹{item.low.toFixed(2)}
-              </Text>
-              <Text style={styles.cell}>₹{item.close.toFixed(2)}</Text>
-            </View>
-          )}
-        />
-      ) : (
-        <Text style={styles.emptyText}>No data available</Text>
-      )}
-
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -235,7 +433,11 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
+  },
+
+  scrollContent: {
     padding: 16,
+    paddingBottom: 36,
   },
 
   errorContainer: {
@@ -251,43 +453,156 @@ const styles = StyleSheet.create({
   },
 
   title: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 12,
     color: colors.text,
   },
 
-  tfRow: {
+  headerRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 12,
   },
 
-  tfBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 20,
-    marginRight: 8,
+  limitBadge: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.text,
     backgroundColor: colors.border,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
 
-  activeTF: {
-    backgroundColor: colors.primary,
+  selectorCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 12,
   },
 
-  activeText: {
-    color: colors.background,
+  selectorLabel: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    marginBottom: 8,
+  },
+
+  dropdownTrigger: {
+    borderWidth: 1,
+    borderColor: colors.divider,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#141A33',
+  },
+
+  dropdownName: {
+    color: colors.text,
+    fontSize: 15,
     fontWeight: '600',
   },
 
-  tfText: {
+  dropdownSymbol: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    marginTop: 2,
+  },
+
+  dropdownArrow: {
+    color: colors.textSecondary,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
+  dropdownMenu: {
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: colors.divider,
+    borderRadius: 12,
+    maxHeight: 220,
+    backgroundColor: '#141A33',
+  },
+
+  dropdownScroll: {
+    maxHeight: 220,
+  },
+
+  dropdownItem: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+
+  dropdownItemActive: {
+    backgroundColor: 'rgba(0, 208, 132, 0.12)',
+  },
+
+  dropdownItemName: {
+    color: colors.text,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+
+  dropdownItemNameActive: {
+    color: colors.success,
+  },
+
+  dropdownItemSymbol: {
+    marginTop: 2,
+    color: colors.textSecondary,
+    fontSize: 11,
+  },
+
+  snapshotCard: {
+    backgroundColor: colors.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: 12,
+    marginBottom: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+
+  snapshotLabel: {
     fontSize: 12,
     color: colors.textSecondary,
+  },
+
+  snapshotPrice: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.text,
+    marginTop: 2,
+  },
+
+  snapshotChangeWrap: {
+    alignItems: 'flex-end',
+  },
+
+  snapshotChange: {
+    fontSize: 16,
+    fontWeight: '700',
+  },
+
+  snapshotPercent: {
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 3,
   },
 
   chartCard: {
     backgroundColor: colors.surface,
     borderRadius: 16,
-    padding: 10,
+    padding: 12,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: colors.border,
@@ -305,47 +620,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 
-  section: {
-    fontWeight: 'bold',
-    marginBottom: 8,
-    fontSize: 16,
-    color: colors.text,
-  },
-
-  tableHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: colors.surface,
-    padding: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-
-  rowItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    padding: 12,
-    backgroundColor: colors.surface,
-    marginTop: 6,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-
-  cell: {
-    fontSize: 12,
-    color: colors.text,
-  },
-
-  green: {
-    color: colors.success,
-  },
-
-  red: {
-    color: colors.error,
-  },
-
   emptyText: {
     color: colors.textSecondary,
     textAlign: 'center',
@@ -353,17 +627,41 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 
+  chartCanvas: {
+    paddingBottom: 8,
+  },
+
   ohlcChart: {
     flexDirection: 'row',
-    height: 200,
-    alignItems: 'flex-end',
+    minHeight: CHART_HEIGHT,
+    alignItems: 'flex-start',
     marginVertical: 10,
   },
 
-  yAxisLabels: {
-    width: 50,
+  yAxisLabelsLeft: {
+    width: AXIS_COLUMN_WIDTH,
+    height: CHART_HEIGHT,
     justifyContent: 'space-between',
-    paddingRight: 8,
+    paddingRight: 6,
+  },
+
+  yAxisLabelsRight: {
+    width: AXIS_COLUMN_WIDTH,
+    height: CHART_HEIGHT,
+    justifyContent: 'space-between',
+    paddingLeft: 6,
+  },
+
+  axisTitle: {
+    fontSize: 9,
+    color: colors.textSecondary,
+    textAlign: 'right',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+
+  axisTitleRight: {
+    textAlign: 'left',
   },
 
   yAxisLabel: {
@@ -372,15 +670,77 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
 
+  yAxisLabelRight: {
+    textAlign: 'left',
+  },
+
+  chartPlotArea: {
+    height: CHART_HEIGHT,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: '#121834',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+
+  gridLine: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    height: 1,
+    backgroundColor: 'rgba(176, 184, 212, 0.2)',
+  },
+
   candlesContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     flexDirection: 'row',
-    height: 200,
+    height: CHART_HEIGHT,
     alignItems: 'flex-end',
+    justifyContent: 'flex-start',
   },
 
   candlestick: {
-    height: 200,
+    height: CHART_HEIGHT,
     justifyContent: 'flex-end',
     alignItems: 'center',
+  },
+
+  xAxisRow: {
+    flexDirection: 'row',
+    marginTop: 6,
+    alignItems: 'center',
+  },
+
+  xAxisSpacer: {
+    width: AXIS_COLUMN_WIDTH,
+  },
+
+  xAxisLabelsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+  },
+
+  xAxisLabel: {
+    fontSize: 10,
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+
+  axisHint: {
+    marginLeft: 58,
+    marginTop: 6,
+    color: colors.textSecondary,
+    fontSize: 10,
+    fontWeight: '600',
+  },
+
+  scrollHint: {
+    color: colors.textSecondary,
+    fontSize: 12,
+    marginTop: 2,
   },
 });
