@@ -3,5 +3,12 @@ module.exports = {
     ios: {},
     android: {},
   },
-  dependencies: {},
+  dependencies: {
+    'react-native-vector-icons': {
+      platforms: {
+        ios: {},
+        android: {},
+      },
+    },
+  },
 };
