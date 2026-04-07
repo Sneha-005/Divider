@@ -5,9 +5,8 @@ import {
   Text,
   StyleSheet,
   SafeAreaView,
-  Animated,
-  Dimensions,
 } from 'react-native';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 
 interface BottomTabNavigationProps {
   activeTab: 'home' | 'chart' | 'portfolio' | 'alert' | 'profile';
@@ -15,29 +14,26 @@ interface BottomTabNavigationProps {
 }
 
 const TABS = [
-  { name: 'home', icon: '🏠', label: 'Home' },
-  { name: 'chart', icon: '📊', label: 'Chart' },
-  { name: 'portfolio', icon: '📈', label: 'Portfolio' },
-  { name: 'alert', icon: '🔔', label: 'Alert' },
-  { name: 'profile', icon: '👤', label: 'Profile' },
+  { name: 'home', icon: 'home-outline', activeIcon: 'home', label: 'Home' },
+  { name: 'chart', icon: 'chart-line', activeIcon: 'chart-line-variant', label: 'Chart' },
+  { name: 'portfolio', icon: 'briefcase-variant-outline', activeIcon: 'briefcase-variant', label: 'Portfolio' },
+  { name: 'alert', icon: 'bell-outline', activeIcon: 'bell', label: 'Alert' },
+  { name: 'profile', icon: 'account-circle-outline', activeIcon: 'account-circle', label: 'Profile' },
 ] as const;
 
 export const BottomTabNavigation: React.FC<BottomTabNavigationProps> = ({
   activeTab,
   onTabPress,
 }) => {
-  const screenWidth = Dimensions.get('window').width;
-  const animatedValue = React.useRef(new Animated.Value(0)).current;
-
   return (
-    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+    <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
         {/* Glassmorphic Background */}
         <View style={styles.glassBackground} />
 
         {/* Tabs Container */}
         <View style={styles.tabsContainer}>
-          {TABS.map((tab, index) => {
+          {TABS.map((tab) => {
             const isActive = activeTab === tab.name;
 
             return (
@@ -51,9 +47,12 @@ export const BottomTabNavigation: React.FC<BottomTabNavigationProps> = ({
                 {isActive && <View style={styles.activeIndicator} />}
 
                 {/* Icon */}
-                <Text style={[styles.icon, isActive && styles.activeIcon]}>
-                  {tab.icon}
-                </Text>
+                <MaterialCommunityIcons
+                  name={isActive ? tab.activeIcon : tab.icon}
+                  size={isActive ? 24 : 22}
+                  color={isActive ? '#00D084' : '#B0B8D4'}
+                  style={styles.icon}
+                />
 
                 {/* Label */}
                 <Text
@@ -80,11 +79,12 @@ const styles = StyleSheet.create({
   },
   container: {
     position: 'relative',
-    height: 80,
+    height: 75,
     paddingHorizontal: 12,
     paddingVertical: 8,
     justifyContent: 'center',
     alignItems: 'center',
+    zIndex: 1000,
   },
   glassBackground: {
     position: 'absolute',
@@ -92,14 +92,17 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 24,
+    backgroundColor: 'rgba(26, 29, 46, 0.95)',
+    borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
-    // Glassmorphism effect
-    backdropFilter: 'blur(10px)',
+    borderColor: 'rgba(255, 255, 255, 0.1)',
     marginHorizontal: 12,
     marginVertical: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 10,
   },
   tabsContainer: {
     flexDirection: 'row',
@@ -107,47 +110,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
     paddingHorizontal: 8,
+    zIndex: 1001,
   },
   tabButton: {
     flex: 1,
-    height: 64,
+    height: 60,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 8,
-    borderRadius: 20,
+    borderRadius: 16,
     position: 'relative',
   },
   activeTabButton: {
     backgroundColor: 'rgba(30, 64, 175, 0.15)',
-    borderRadius: 20,
+    borderRadius: 16,
   },
   activeIndicator: {
     position: 'absolute',
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#1E40AF',
-    bottom: 4,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    backgroundColor: '#00D084',
+    bottom: 6,
   },
   icon: {
-    fontSize: 24,
     marginBottom: 4,
-    color: '#94A3B8',
-  },
-  activeIcon: {
-    fontSize: 26,
-    color: '#1E40AF',
   },
   label: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: '#94A3B8',
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#B0B8D4',
     textAlign: 'center',
   },
   activeLabel: {
-    color: '#1E40AF',
+    color: '#00D084',
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 11,
   },
 });
 

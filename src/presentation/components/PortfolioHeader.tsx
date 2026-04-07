@@ -5,20 +5,13 @@ import { formatCurrency } from '../../utils/formatters';
 
 interface PortfolioHeaderProps {
   totalAmount: number;
-  userName?: string;
 }
 
 export const PortfolioHeader: React.FC<PortfolioHeaderProps> = ({
   totalAmount,
-  userName,
 }) => {
   return (
     <View style={styles.container}>
-      <View style={styles.greetingRow}>
-        <Text style={styles.greeting}>
-          {userName ? `Hey, ${userName} 👋` : 'Welcome back 👋'}
-        </Text>
-      </View>
       <Text style={styles.label}>Total Portfolio Value</Text>
       <Text style={styles.amount}>{formatCurrency(totalAmount)}</Text>
       <View style={styles.divider} />
@@ -34,15 +27,6 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
-  },
-  greetingRow: {
-    marginBottom: 16,
-  },
-  greeting: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: colors.background,
-    opacity: 0.9,
   },
   label: {
     fontSize: 13,

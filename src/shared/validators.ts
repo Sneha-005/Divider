@@ -6,7 +6,7 @@ export const validators = {
 
   password: (password: string): boolean => {
     // Min 8 chars, uppercase, lowercase, number, special char
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9\s]).{8,}$/;
     return passwordRegex.test(password);
   },
 
@@ -30,8 +30,11 @@ export const getPasswordErrorMessage = (password: string): string | null => {
   if (!/\d/.test(password)) {
     return 'Password must contain numbers';
   }
-  if (!/[@$!%*?&]/.test(password)) {
-    return 'Password must contain special characters (@$!%*?&)';
+  if (!/[^a-zA-Z0-9\s]/.test(password)) {
+    return 'Password must contain special characters';
+  }
+  if (!validators.password(password)) {
+    return 'Password does not meet requirements';
   }
   return null;
 };

@@ -11,7 +11,7 @@ import {
   ActivityIndicator,
   GestureResponderEvent,
 } from "react-native";
-import { Colors } from "@shared/theme/colors";
+import { Colors } from "../../shared/theme/colors";
 
 interface PrimaryButtonProps {
   title: string;

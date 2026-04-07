@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   StatusBar,
   StyleSheet,
@@ -14,16 +14,65 @@ import ChartScreen from './src/presentation/screens/ChartScreen';
 import AlertScreen from './src/presentation/screens/AlertScreen';
 import ProfileScreen from './src/presentation/screens/ProfileScreen';
 import { BottomTabNavigation } from './src/presentation/components/BottomTabNavigation';
+import { AuthLocalDataSource } from './src/data/datasources/local/auth.local.datasource';
+
+const localDataSource = new AuthLocalDataSource();
 
 type AuthScreen = 'login' | 'signup';
 type TabScreen = 'home' | 'chart' | 'portfolio' | 'alert' | 'profile';
 type AppScreen = AuthScreen | TabScreen;
 
 function App(): React.JSX.Element {
+  const [isInitializing, setIsInitializing] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentTab, setCurrentTab] = useState<TabScreen>('home');
   const [userName, setUserName] = useState<string | undefined>(undefined);
   const [authScreen, setAuthScreen] = useState<AuthScreen>('login');
+
+  const enforceTokenValidity = useCallback(async () => {
+    const token = await localDataSource.getToken();
+
+    if (!token) {
+      setUserName(undefined);
+      setIsAuthenticated(false);
+      setCurrentTab('home');
+      setAuthScreen('login');
+    }
+  }, []);
+
+  useEffect(() => {
+    const bootstrapAsync = async () => {
+      try {
+        const token = await localDataSource.getToken();
+        if (token) {
+          const user = await localDataSource.getUserData();
+          if (user) {
+            setUserName(user.username || user.email?.split('@')[0]);
+          }
+          setIsAuthenticated(true);
+        }
+      } catch (e) {
+        // Restoring token failed
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+    bootstrapAsync();
+  }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    // Check immediately and then periodically to ensure expired tokens force re-login.
+    enforceTokenValidity();
+    const intervalId = setInterval(enforceTokenValidity, 60 * 1000);
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [isAuthenticated, enforceTokenValidity]);
 
   const handleLoginSuccess = (email?: string) => {
     setUserName(email?.split('@')[0]);
@@ -37,7 +86,8 @@ function App(): React.JSX.Element {
     setCurrentTab('home');
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await localDataSource.clearAuthData();
     setUserName(undefined);
     setIsAuthenticated(false);
     setAuthScreen('login');
@@ -54,7 +104,7 @@ function App(): React.JSX.Element {
       case 'alert':
         return <AlertScreen />;
       case 'profile':
-        return <ProfileScreen onLogout={handleLogout} />;
+        return <ProfileScreen />;
       default:
         return <HomeScreen />;
     }
@@ -78,6 +128,14 @@ function App(): React.JSX.Element {
         );
     }
   };
+
+  if (isInitializing) {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
+        <StatusBar barStyle="light-content" backgroundColor={colors.background} />
+      </View>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
@@ -103,14 +161,14 @@ function App(): React.JSX.Element {
       style={[
         styles.container,
         {
-          backgroundColor: colors.screenBackground,
+          backgroundColor: '#FFFFFF',
         },
       ]}
       edges={['top']}
     >
       <StatusBar
         barStyle="dark-content"
-        backgroundColor={colors.screenBackground}
+        backgroundColor="#FFFFFF"
       />
       <View style={styles.content}>
         {renderTabScreen()}

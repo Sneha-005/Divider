@@ -27,14 +27,79 @@ const SignupScreen: React.FC<SignupScreenProps> = ({
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(false);
+  const emailInputRef = React.useRef<any>(null);
+  const usernameInputRef = React.useRef<any>(null);
+  const passwordInputRef = React.useRef<any>(null);
+  const confirmPasswordInputRef = React.useRef<any>(null);
 
   const [emailError, setEmailError] = useState<string | null>(null);
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [confirmPasswordError, setConfirmPasswordError] = useState<string | null>(null);
   const [termsError, setTermsError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const { signup, loading, error: authError } = useAuth();
+
+  // Real-time email validation
+  const handleEmailChange = (text: string) => {
+    setEmail(text);
+    setApiError(null);
+    
+    if (!text) {
+      setEmailError('Email is required');
+    } else if (!validators.email(text)) {
+      setEmailError('Invalid email format');
+    } else {
+      setEmailError(null);
+    }
+  };
+
+  // Real-time username validation
+  const handleUsernameChange = (text: string) => {
+    setUsername(text);
+    setApiError(null);
+    
+    if (!text) {
+      setUsernameError('Username is required');
+    } else if (!validators.username(text)) {
+      setUsernameError('Username must be 3-20 characters (alphanumeric + _)');
+    } else {
+      setUsernameError(null);
+    }
+  };
+
+  // Real-time password validation
+  const handlePasswordChange = (text: string) => {
+    setPassword(text);
+    setApiError(null);
+    
+    const passwordErrorMsg = getPasswordErrorMessage(text);
+    if (passwordErrorMsg) {
+      setPasswordError(passwordErrorMsg);
+    } else {
+      setPasswordError(null);
+    }
+    
+    // Check confirm password match if confirm password is already entered
+    if (confirmPassword && text !== confirmPassword) {
+      setConfirmPasswordError('Passwords do not match');
+    } else if (confirmPassword && text === confirmPassword) {
+      setConfirmPasswordError(null);
+    }
+  };
+
+  // Real-time confirm password validation
+  const handleConfirmPasswordChange = (text: string) => {
+    setConfirmPassword(text);
+    setApiError(null);
+    
+    if (password && text !== password) {
+      setConfirmPasswordError('Passwords do not match');
+    } else {
+      setConfirmPasswordError(null);
+    }
+  };
 
   const validateForm = (): boolean => {
     let isValid = true;
@@ -45,8 +110,6 @@ const SignupScreen: React.FC<SignupScreenProps> = ({
     } else if (!validators.email(email)) {
       setEmailError('Invalid email format');
       isValid = false;
-    } else {
-      setEmailError(null);
     }
 
     if (!username) {
@@ -55,23 +118,17 @@ const SignupScreen: React.FC<SignupScreenProps> = ({
     } else if (!validators.username(username)) {
       setUsernameError('Username must be 3-20 characters (alphanumeric + _)');
       isValid = false;
-    } else {
-      setUsernameError(null);
     }
 
     const passwordErrorMsg = getPasswordErrorMessage(password);
     if (passwordErrorMsg) {
       setPasswordError(passwordErrorMsg);
       isValid = false;
-    } else {
-      setPasswordError(null);
     }
 
     if (password !== confirmPassword) {
       setConfirmPasswordError('Passwords do not match');
       isValid = false;
-    } else {
-      setConfirmPasswordError(null);
     }
 
     if (!termsAccepted) {
@@ -89,9 +146,31 @@ const SignupScreen: React.FC<SignupScreenProps> = ({
       return;
     }
 
-    const result = await signup({ email, username, password });
-    if (result.success) {
-      onSignupSuccess?.(username);
+    try {
+      const result = await signup({ email, username, password });
+      if (result.success) {
+        // Clear form on successful signup
+        setEmail('');
+        setUsername('');
+        setPassword('');
+        setConfirmPassword('');
+        setTermsAccepted(false);
+        setEmailError(null);
+        setUsernameError(null);
+        setPasswordError(null);
+        setConfirmPasswordError(null);
+        setTermsError(null);
+        setApiError(null);
+        
+        console.log('Signup successful, navigating to login');
+        onNavigateToLogin();
+      } else {
+        // Show API error message
+        setApiError(result.error || 'Signup failed');
+      }
+    } catch (error) {
+      console.error('Signup error:', error);
+      setApiError('An unexpected error occurred. Please try again.');
     }
   };
 
@@ -109,53 +188,65 @@ const SignupScreen: React.FC<SignupScreenProps> = ({
       </View>
 
       {/* Error Message */}
-      {authError && (
+      {(authError || apiError) && (
         <View style={styles.errorBanner}>
-          <Text style={styles.errorBannerText}>{authError}</Text>
+          <Text style={styles.errorBannerText}>{authError || apiError}</Text>
         </View>
       )}
 
       {/* Form */}
       <View style={styles.form}>
         <TextInput
+          ref={emailInputRef}
           label="Email"
           placeholder="Enter your email"
           value={email}
-          onChangeText={setEmail}
+          onChangeText={handleEmailChange}
           error={emailError}
           editable={!loading}
           keyboardType="email-address"
           autoCapitalize="none"
+          returnKeyType="next"
+          onSubmitEditing={() => usernameInputRef.current?.focus()}
         />
 
         <TextInput
+          ref={usernameInputRef}
           label="Username"
           placeholder="Choose a username"
           value={username}
-          onChangeText={setUsername}
+          onChangeText={handleUsernameChange}
           error={usernameError}
           editable={!loading}
           autoCapitalize="none"
+          returnKeyType="next"
+          onSubmitEditing={() => passwordInputRef.current?.focus()}
         />
 
         <TextInput
+          ref={passwordInputRef}
           label="Password"
           placeholder="Enter your password"
           value={password}
-          onChangeText={setPassword}
+          onChangeText={handlePasswordChange}
           error={passwordError}
           editable={!loading}
           secureTextEntry
+          returnKeyType="next"
+          onSubmitEditing={() => confirmPasswordInputRef.current?.focus()}
         />
 
         <TextInput
+          ref={confirmPasswordInputRef}
           label="Confirm Password"
           placeholder="Confirm your password"
           value={confirmPassword}
-          onChangeText={setConfirmPassword}
+          onChangeText={handleConfirmPasswordChange}
           error={confirmPasswordError}
           editable={!loading}
           secureTextEntry
+          returnKeyType="done"
+          onSubmitEditing={() => confirmPasswordInputRef.current?.blur()}
         />
 
         {/* Terms Checkbox */}

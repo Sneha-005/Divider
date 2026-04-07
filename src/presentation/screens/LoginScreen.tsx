@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { colors } from '../../shared/theme/colors';
-import { validators } from '../../shared/validators';
+import { validators, getPasswordErrorMessage } from '../../shared/validators';
 import { TextInput } from '../components/TextInput';
 import { Button } from '../components/Button';
 import { LoadingOverlay } from '../components/LoadingOverlay';
@@ -26,8 +26,38 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
   const [password, setPassword] = useState('');
   const [emailError, setEmailError] = useState<string | null>(null);
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const emailInputRef = React.useRef<any>(null);
+  const passwordInputRef = React.useRef<any>(null);
 
   const { login, loading, error: authError } = useAuth();
+
+  // Real-time email validation
+  const handleEmailChange = (text: string) => {
+    setEmail(text);
+    setApiError(null);
+
+    if (!text) {
+      setEmailError('Email is required');
+    } else if (!validators.email(text)) {
+      setEmailError('Invalid email format');
+    } else {
+      setEmailError(null);
+    }
+  };
+
+  // Real-time password validation with regex check
+  const handlePasswordChange = (text: string) => {
+    setPassword(text);
+    setApiError(null);
+
+    const passwordErrorMsg = getPasswordErrorMessage(text);
+    if (passwordErrorMsg) {
+      setPasswordError(passwordErrorMsg);
+    } else {
+      setPasswordError(null);
+    }
+  };
 
   const validateForm = (): boolean => {
     let isValid = true;
@@ -38,12 +68,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
     } else if (!validators.email(email)) {
       setEmailError('Invalid email format');
       isValid = false;
-    } else {
-      setEmailError(null);
     }
 
-    if (!password) {
-      setPasswordError('Password is required');
+    // Validate password strength
+    const passwordErrorMsg = getPasswordErrorMessage(password);
+    if (passwordErrorMsg) {
+      setPasswordError(passwordErrorMsg);
       isValid = false;
     } else {
       setPasswordError(null);
@@ -57,9 +87,22 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
       return;
     }
 
-    const result = await login({ email, password });
-    if (result.success) {
-      onLoginSuccess?.(email);
+    try {
+      const result = await login({ email, password });
+      if (result.success) {
+        setEmail('');
+        setPassword('');
+        setEmailError(null);
+        setPasswordError(null);
+        setApiError(null);
+        onLoginSuccess?.(email);
+      } else {
+        // Show API error message
+        setApiError(result.error || 'Login failed');
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setApiError('An unexpected error occurred. Please try again.');
     }
   };
 
@@ -77,33 +120,39 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
       </View>
 
       {/* Error Message */}
-      {authError && (
+      {(authError || apiError) && (
         <View style={styles.errorBanner}>
-          <Text style={styles.errorBannerText}>{authError}</Text>
+          <Text style={styles.errorBannerText}>{authError || apiError}</Text>
         </View>
       )}
 
       {/* Form */}
       <View style={styles.form}>
         <TextInput
+          ref={emailInputRef}
           label="Email"
           placeholder="Enter your email"
           value={email}
-          onChangeText={setEmail}
+          onChangeText={handleEmailChange}
           error={emailError}
           editable={!loading}
           keyboardType="email-address"
           autoCapitalize="none"
+          returnKeyType="next"
+          onSubmitEditing={() => passwordInputRef.current?.focus()}
         />
 
         <TextInput
+          ref={passwordInputRef}
           label="Password"
           placeholder="Enter your password"
           value={password}
-          onChangeText={setPassword}
+          onChangeText={handlePasswordChange}
           error={passwordError}
           editable={!loading}
           secureTextEntry
+          returnKeyType="done"
+          onSubmitEditing={() => passwordInputRef.current?.blur()}
         />
 
         <Button
