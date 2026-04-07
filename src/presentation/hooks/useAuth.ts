@@ -34,17 +34,19 @@ export const useAuth = () => {
     try {
       const response = await authDataSource.login({ email, password });
 
+      if (!response.token) {
+        throw new Error('Login response missing token');
+      }
+
       const userData: User = {
         id: response.id,
         email: response.email,
-        username: response.username,
+        username: response.username || response.email?.split('@')[0],
         token: response.token,
       };
 
-      if (response.token) {
-        await localDataSource.saveToken(response.token);
-        await localDataSource.saveUserData(userData);
-      }
+      await localDataSource.saveToken(response.token);
+      await localDataSource.saveUserData(userData);
 
       setUser(userData);
       return { success: true };
@@ -73,17 +75,19 @@ export const useAuth = () => {
     try {
       const response = await authDataSource.register({ email, username, password });
 
+      if (!response.token) {
+        throw new Error('Signup response missing token');
+      }
+
       const userData: User = {
         id: response.id,
         email: response.email,
-        username: response.username,
+        username: response.username || username || response.email?.split('@')[0],
         token: response.token,
       };
 
-      if (response.token) {
-        await localDataSource.saveToken(response.token);
-        await localDataSource.saveUserData(userData);
-      }
+      await localDataSource.saveToken(response.token);
+      await localDataSource.saveUserData(userData);
 
       setUser(userData);
       return { success: true };

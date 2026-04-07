@@ -5,17 +5,17 @@
 export interface LoginResponse {
   id: string;
   email: string;
-  username: string;
+  username?: string;
   token: string;
-  created_at: string;
+  created_at?: string;
 }
 
 export interface RegisterResponse {
   id: string;
   email: string;
-  username: string;
+  username?: string;
   token: string;
-  created_at: string;
+  created_at?: string;
 }
 
 export interface ApiErrorResponse {

@@ -95,4 +95,8 @@ export class AuthLocalDataSource {
       throw error;
     }
   }
+
+  private isTokenExpired(savedAt: number): boolean {
+    return Date.now() - savedAt >= TOKEN_TTL_MS;
+  }
 }
