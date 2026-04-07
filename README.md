@@ -1,50 +1,364 @@
-# Welcome to your Expo app 👋
+# Divider - Trading Application
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A React Native trading application built with Expo, featuring stock portfolio management, real-time market data, and secure authentication.
 
-## Get started
+---
 
-1. Install dependencies
+## About
 
-   ```bash
-   npm install
-   ```
+**Divider** is a virtual stock trading application that allows users to practice and learn stock market trading without risking real money. Every user starts with a virtual wallet of **$50,000** to trade stocks, build a diversified portfolio, and practice investment strategies. The app provides real-time market data, portfolio tracking, and a seamless trading experience on both iOS and Android platforms.
 
-2. Start the app
+Whether you're a beginner learning about stocks or an experienced investor looking to practice new strategies, Divider gives you the tools and virtual capital to succeed.
 
-   ```bash
-   npx expo start
-   ```
+---
 
-In the output, you'll find options to open the app in a
+## Table of Contents
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- [Features](#features)
+- [Project Structure](#project-structure)
+- [Setup & Installation](#setup--installation)
+- [Screenshots](#screenshots)
+- [Demo Video](#demo-video)
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+---
 
-## Get a fresh project
+## Features
 
-When you're ready, run:
+-  Portfolio management and tracking
+-  Real-time stock quotes and market data
+-  Secure user authentication & registration
+-  Trading execution and order management
+-  Cross-platform support (iOS & Android)
 
-```bash
-npm run reset-project
+---
+
+## Project Structure
+
+### Root Level Files & Folders
+
+```
+├── app.json              # Expo app configuration
+├── App.tsx               # Main app entry component
+├── babel.config.js       # Babel transpiler configuration
+├── eslint.config.js      # ESLint linting rules
+├── jest.config.js        # Jest testing configuration
+├── metro.config.js       # Metro bundler configuration
+├── package.json          # Dependencies and scripts
+├── tsconfig.json         # TypeScript configuration
+├── Gemfile               # Ruby dependencies (for native builds)
+└── README.md             # This file
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+---
 
-## Learn more
+###  `/app` - Expo Router Navigation
 
-To learn more about developing your project with Expo, look at the following resources:
+The main app routing structure using Expo Router (file-based routing).
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```
+app/
+├── _layout.tsx           # Root layout wrapper
+├── index.tsx             # Home/landing screen
+├── home.tsx              # Home feed screen
+├── signup.tsx            # User registration screen
+```
 
-## Join the community
+---
 
-Join our community of developers creating universal apps.
+###  `/components` - Reusable UI Components
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Shared, reusable components used across screens.
+
+```
+components/
+├── external-link.tsx     # Hyperlink component
+├── haptic-tab.tsx        # Haptic feedback for tabs
+├── hello-wave.tsx        # Wave animation component
+├── parallax-scroll-view.tsx  # Parallax scrolling effect
+├── themed-text.tsx       # Text with theme styling
+├── themed-view.tsx       # Container with theme styling
+└── ui/                   # UI component library
+    ├── collapsible.tsx   # Collapsible accordion component
+    ├── icon-symbol.tsx   # Icon renderer
+    └── icon-symbol.ios.tsx  # iOS-specific icon component
+```
+
+---
+
+###  `/constants` - App Configuration
+
+Application-level constants and theme definitions.
+
+```
+constants/
+└── theme.ts              # Color schemes and typography
+```
+
+---
+
+###  `/hooks` - Custom React Hooks
+
+Reusable logic and state management hooks.
+
+```
+hooks/
+├── use-color-scheme.ts   # Platform-agnostic theme hook
+├── use-color-scheme.web.ts  # Web-specific theme hook
+└── use-theme-color.ts    # Theme color management
+```
+
+---
+
+###  `/src` - Feature Implementation (Domain-Driven Architecture)
+
+The core application logic following Clean Architecture principles.
+
+#### **`/src/data`** - Data Layer
+Handles data sources, models, and repositories.
+
+```
+src/data/
+├── datasources/          # Data access layer
+│   ├── AuthLocalDataSource.ts    # Local auth storage
+│   ├── StockLocalDataSource.ts   # Local stock cache
+│   ├── stock.datasource.ts       # Stock API client
+│   ├── local/            # Local database implementations
+│   └── remote/           # Remote API implementations
+├── models/               # Data transfer objects (DTOs)
+│   ├── auth.model.ts
+│   ├── stock.model.ts
+│   ├── user.entity.ts
+│   └── User.ts
+└── repositories/         # Repository implementations
+    ├── AuthRepositoryImpl.ts
+    ├── auth.repository.impl.ts
+    ├── StockRepositoryImpl.ts
+    └── stock.repository.impl.ts
+```
+
+#### **`/src/domain`** - Domain Layer
+Business logic, entities, and repository contracts.
+
+```
+src/domain/
+├── entities/             # Core business objects
+│   ├── stock.entity.ts
+│   ├── Stock.ts
+│   ├── user.entity.ts
+│   └── User.ts
+├── repositories/         # Repository interfaces
+│   ├── AuthRepository.ts
+│   ├── auth.repository.ts
+│   ├── StockRepository.ts
+│   └── stock.repository.ts
+├── use-cases/            # Business use cases
+│   ├── login.usecase.ts
+│   └── register.usecase.ts
+└── usecases/             # Trading use cases
+    ├── ExecuteTradeUseCase.ts
+    ├── GetPortfolioUseCase.ts
+    └── GetStocksUseCase.ts
+```
+
+#### **`/src/presentation`** - Presentation Layer
+UI screens, components, navigation, and state management.
+
+```
+src/presentation/
+├── components/           # Screen-specific components
+├── hooks/                # UI-related custom hooks
+├── navigation/           # Navigation configuration
+└── screens/              # Screen/page components
+```
+
+#### **`/src/shared`** - Shared Utilities
+Cross-cutting concerns and utilities.
+
+```
+src/shared/
+├── validators.ts         # Input validation functions
+├── theme/                # Theme configuration
+└── utils/                # Common helper functions
+```
+
+#### **`/src/types`** - Type Definitions
+TypeScript type declarations and interfaces.
+
+```
+src/types/
+└── react-native-vector-icons.d.ts  # Icon library types
+```
+
+#### **`/src/utils`** - Utility Functions
+Application-wide utility and helper functions.
+
+```
+src/utils/
+├── constants.ts          # Global constants
+├── formatters.ts         # Data formatting utilities
+└── websocketDebugger.ts  # WebSocket debugging tools
+```
+
+---
+
+### 📱 `/android` - Android Native Code
+
+Android-specific native implementation and gradle configuration.
+
+```
+android/
+├── build.gradle          # Root build configuration
+├── gradle.properties     # Gradle properties
+├── gradlew / gradlew.bat # Gradle wrapper scripts
+├── local.properties      # Local SDK configuration
+├── settings.gradle       # Module configuration
+└── app/                  # Android app module
+    ├── build.gradle      # App build configuration
+    ├── proguard-rules.pro # Obfuscation rules
+    └── src/
+        └── main/         # Main app source code
+```
+
+---
+
+###  `/ios` - iOS Native Code
+
+iOS-specific native implementation and Xcode project configuration.
+
+```
+ios/
+├── Podfile               # CocoaPods dependencies
+├── Divider/              # Main app target
+│   ├── AppDelegate.*     # App lifecycle handler
+│   ├── Info.plist        # App configuration
+│   ├── LaunchScreen.storyboard  # Launch screen UI
+│   ├── PrivacyInfo.xcprivacy    # Privacy manifest
+│   └── Images.xcassets/  # App assets & icons
+├── Divider.xcodeproj/    # Xcode project file
+└── DividerTests/         # iOS unit tests
+```
+
+---
+
+###  `/assets` - Media Resources
+
+Application images, icons, and media files.
+
+```
+assets/
+└── images/               # Image assets used in app
+```
+
+---
+
+###  `/__tests__` - Test Files
+
+Unit tests and integration tests.
+
+```
+__tests__/
+└── App.test.tsx          # App component tests
+```
+
+---
+
+###  `/scripts` - Build & Utility Scripts
+
+Automation scripts for development and deployment.
+
+```
+scripts/
+└── reset-project.js      # Project reset utility
+```
+
+---
+
+## Setup & Installation
+
+### Prerequisites
+
+Ensure you have completed the [React Native - Environment Setup](https://reactnative.dev/docs/environment-setup) instructions.
+
+### Installation
+
+```bash
+# Install dependencies
+npm install
+# or
+yarn install
+```
+
+### Running the App
+
+#### Development Server
+```bash
+npm start
+# or
+yarn start
+```
+
+#### Android
+```bash
+npm run android
+# or
+yarn android
+```
+
+---
+
+## Screenshots
+
+### Authentication
+![Login Screen]()
+![Sign Up Screen]()
+
+### Portfolio & Trading
+![Portfolio Overview]()
+![Stock Details]()
+![Trading Modal]()
+
+### Market Data
+![Stock List]()
+![Market Overview]()
+
+---
+
+## Demo Video
+
+[Click here to watch the demo]()
+
+---
+
+## Project Architecture
+
+This project follows **Clean Architecture** principles with a clear separation of concerns:
+
+- **Presentation Layer**: UI components and screens
+- **Domain Layer**: Business logic and use cases
+- **Data Layer**: Repositories and data sources
+
+This architecture ensures:
+- ✅ Testability
+- ✅ Maintainability
+- ✅ Scalability
+- ✅ Clear code organization
+
+---
+
+## Technologies Used
+
+- **React Native** - Mobile framework
+- **Expo** - Development platform
+- **TypeScript** - Type safety
+- **React Navigation** - App routing
+- **ESLint** - Code linting
+- **Jest** - Testing framework
+
+---
+
+## Contributing
+
+Contributions are welcome! Please follow the established folder structure and coding conventions.
+
+---
+
