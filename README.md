@@ -4,13 +4,24 @@ A React Native trading application built with Expo, featuring stock portfolio ma
 
 ---
 
+## About
+
+**Divider** is a virtual stock trading application that allows users to practice and learn stock market trading without risking real money. Every user starts with a virtual wallet of **$50,000** to trade stocks, build a diversified portfolio, and practice investment strategies. The app provides real-time market data, portfolio tracking, and a seamless trading experience on both iOS and Android platforms.
+
+Whether you're a beginner learning about stocks or an experienced investor looking to practice new strategies, Divider gives you the tools and virtual capital to succeed.
+
+---
+
 ## Table of Contents
 
+- [About](#about)
 - [Features](#features)
 - [Project Structure](#project-structure)
 - [Setup & Installation](#setup--installation)
 - [Screenshots](#screenshots)
 - [Demo Video](#demo-video)
+- [Project Architecture](#project-architecture)
+- [Technologies Used](#technologies-used)
 
 ---
 
@@ -364,33 +375,3 @@ Contributions are welcome! Please follow the established folder structure and co
 ## License
 
 This project is private and confidential.
-
-Now that you have successfully run the app, let's modify it.
-
-1. Open `App.tsx` in your text editor of choice and edit some lines.
-2. For **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Developer Menu** (<kbd>Ctrl</kbd> + <kbd>M</kbd> (on Window and Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (on macOS)) to see your changes!
-
-   For **iOS**: Hit <kbd>Cmd ⌘</kbd> + <kbd>R</kbd> in your iOS Simulator to reload the app and see your changes!
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [Introduction to React Native](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you can't get this to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
