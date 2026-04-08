@@ -312,31 +312,24 @@ yarn android
 ![Login Screen]()
 ![Sign Up Screen]()
 
-### Home Screen
-![HomeScreen1](https://github.com/user-attachments/assets/da00344d-fb3e-4262-a60b-59ca3904fa31)
-![HomeScreen2](https://github.com/user-attachments/assets/1ad8cc4c-3538-456d-9be5-ecd93fefdd1a)
+#### Home Screen
+<img src="https://github.com/user-attachments/assets/da00344d-fb3e-4262-a60b-59ca3904fa31" width="300">
+<img src="https://github.com/user-attachments/assets/1ad8cc4c-3538-456d-9be5-ecd93fefdd1a" width="300">
 
+#### Charts
+<img src="https://github.com/user-attachments/assets/b16d093a-c85a-41f8-addc-4cdaf277da32" width="300">
 
+#### Portfolio
+<img src="https://github.com/user-attachments/assets/a51ae39b-e03e-4d0c-bdc2-4047b76d0311" width="300">
+<img src="https://github.com/user-attachments/assets/6791105f-2dbd-4442-be33-b16301acf102" width="300">
 
-### Charts
-![Chart](https://github.com/user-attachments/assets/b16d093a-c85a-41f8-addc-4cdaf277da32)
+#### Alerts
+<img src="https://github.com/user-attachments/assets/499cdeab-5521-4828-8a27-38eb8deeeccf" width="300">
+<img src="https://github.com/user-attachments/assets/de0d69ee-65ca-4a6b-aef7-9bda571ddf1f" width="300">
 
-
-### Portfolio 
-![Portfolio2](https://github.com/user-attachments/assets/6791105f-2dbd-4442-be33-b16301acf102)
-
-![Portfolio1](https://github.com/user-attachments/assets/a51ae39b-e03e-4d0c-bdc2-4047b76d0311)
-
-
-### Alert
-![alert1](https://github.com/user-attachments/assets/499cdeab-5521-4828-8a27-38eb8deeeccf)
-
-![alert2](https://github.com/user-attachments/assets/de0d69ee-65ca-4a6b-aef7-9bda571ddf1f)
-
-### Profile
-![profile1](https://github.com/user-attachments/assets/2b470937-9116-4497-9572-98c0240ecd17)
-
-![profile2](https://github.com/user-attachments/assets/8b172169-8b6e-478a-99ba-05a43473a827)
+#### Profile
+<img src="https://github.com/user-attachments/assets/2b470937-9116-4497-9572-98c0240ecd17" width="300">
+<img src="https://github.com/user-attachments/assets/8b172169-8b6e-478a-99ba-05a43473a827" width="300">
 
 
 ---
