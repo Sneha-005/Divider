@@ -338,6 +338,10 @@ yarn android
 
 
 
+https://github.com/user-attachments/assets/abbf3e8c-a147-41e7-b0f9-d82f03f46706
+
+
+
 ---
 
 ## Project Architecture
